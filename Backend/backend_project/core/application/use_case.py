@@ -21,7 +21,14 @@ class SwipeleftUsecase:
 
         self.repository=repository
 
-        def execute(self,swiper_id:int,target_id:int):
+    def execute(self,swiper_id:int,target_id:int):
             self.repository.add_rejection(swiper_id,target_id)
             return {"status":"rejected"}
+    
+class GetDiscoveryProfilesUseCase:
+    def __init__(self,repository):
+        self.repository=repository
+    
+    def execute(self,current_user_id:int):
+        return self.repository.get_discovery_list(current_user_id)
     

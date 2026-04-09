@@ -2,7 +2,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from core.infrastructure.repositories import DeveloperRepository
-from core.application.use_case import SwipeRightUsecase
+from core.application.use_case import SwipeRightUsecase,GetDiscoveryProfilesUseCase
+
+from rest_framework.generics import ListAPIView
+from core.interface.serializers import DeveloperProfileSerializer
 
 
 class SwipeView(APIView):
@@ -24,3 +27,12 @@ class SwipeView(APIView):
         result=use_case.execute(swiper_id,target_id)
 
         return Response(result)
+
+class DiscoveryView(ListAPIView):
+    serializer_class = DeveloperProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        repo = DeveloperRepository()
+        use_case = GetDiscoveryProfilesUseCase(repo)
+        return use_case.execute(self.request.user.profile.id)
