@@ -1,6 +1,6 @@
 from core.domain.entities import DeveloperEntity
 from django.contrib.auth.models import User
-from .models import DeveloperModel
+from .models import DeveloperModel,OTPVerification
 
 
 class DeveloperRepository:
@@ -48,6 +48,8 @@ class DeveloperRepository:
     def mark_phone_verified(self, phone_number: str) -> None:
         DeveloperModel.objects.filter(phone_number=phone_number).update(is_phone_verified=True)
 
+# *****************************************************************************
+
 
 # the write operation -swipe actions
 
@@ -65,20 +67,25 @@ class DeveloperRepository:
         target_model = DeveloperModel.objects.get(id=target_id)
         swiper_model.rejected_by.add(target_model)
     
+# otp record helpers
 
-   
+    def save_otp_record(self, phone_number: str, verification_sid: str) -> None:
+        """Invalidate old records and save the new Twilio verification SID."""
+        OTPVerification.objects.filter(
+            phone_number=phone_number, is_used=False
+        ).update(is_used=True)
+        OTPVerification.objects.create(
+            phone_number=phone_number,
+            verification_sid=verification_sid,
+        )
+ 
+    def mark_otp_used(self, phone_number: str) -> None:
+        OTPVerification.objects.filter(
+            phone_number=phone_number, is_used=False
+        ).update(is_used=True)
     
 
-    def create_user_with_profile(self, username, password, tech_stack,phone_number):
-        
-        user = User.objects.create_user(username=username, password=password)
-        profile = DeveloperModel.objects.create(
-            user=user,
-            phone_number=phone_number,
-            tech_stack_raw=tech_stack
-        )
-        
-        return self._to_entity(profile)
+    
     def _to_entity(self, model: DeveloperModel):
      
         from core.domain.entities import DeveloperEntity

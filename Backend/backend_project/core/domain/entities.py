@@ -17,4 +17,4 @@ class DeveloperEntity:
     
     @property
     def primary_image(self)->str:
-        return self.image[0] if self.images else "default_avatar.png"
+        return self.images[0] if self.images else "default_avatar.png"
