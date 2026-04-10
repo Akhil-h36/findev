@@ -5,9 +5,11 @@ from django.contrib.auth.models import User
 class DeveloperModel(models.Model):
 
     user=models.OneToOneField(User,on_delete=models.CASCADE,related_name='profile')
+    phone_number = models.CharField(max_length=15, unique=True)
     bio=models.TextField(max_length=500,blank=True)
     tech_stack_raw=models.CharField(max_length=225)
     is_online=models.BooleanField(default=False)
+    is_phone_verified=models.BooleanField(default=False)
 
 
     liked_by=models.ManyToManyField(
@@ -37,3 +39,17 @@ class ProfileImage(models.Model):
 
     class Meta:
         ordering=['-is_primary','created_at']
+
+
+
+class OTPVerification(models.Model):
+    phone_number=models.CharField(max_length=15)
+    verification_sid=models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_used = models.BooleanField(default=False)
+ 
+    class Meta:
+        ordering = ['-created_at']
+ 
+    def __str__(self):
+        return f"OTP for {self.phone_number}"
