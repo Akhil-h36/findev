@@ -7,10 +7,12 @@ from typing import List ,Optional
 class DeveloperEntity:
     id:Optional[int]
     username:str
-    tech_stack:List[str]
+    tech_stack_data: dict
+    years_experience: int
     images:List[str]
     is_online:bool=False
     bio:str=""
+    github_url: Optional[str]
 
     def has_matching_stack(self,other_developer:'DeveloperEntity')->bool:
         return any(tech in self.tech_stack for tech in other_developer.tech_stack)

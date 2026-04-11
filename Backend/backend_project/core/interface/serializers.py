@@ -28,11 +28,10 @@ class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     password = serializers.CharField(write_only=True, min_length=8)
     phone_number = serializers.CharField(max_length=15)
-    tech_stack = serializers.CharField(
-        max_length=225,
-        help_text="Comma-separated list e.g. Python,Django,React"
-    )
- 
+    github_url = serializers.URLField(required=False, allow_blank=True)
+    years_experience = serializers.IntegerField(min_value=0)
+    tech_stack_data = serializers.JSONField() 
+
     def validate_phone_number(self, value):
         if not value.lstrip('+').isdigit():
             raise serializers.ValidationError("Enter a valid phone number.")

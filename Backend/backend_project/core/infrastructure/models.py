@@ -7,10 +7,11 @@ class DeveloperModel(models.Model):
     user=models.OneToOneField(User,on_delete=models.CASCADE,related_name='profile')
     phone_number = models.CharField(max_length=15, unique=True)
     bio=models.TextField(max_length=500,blank=True)
-    tech_stack_raw=models.CharField(max_length=225)
+    ech_stack_data = models.JSONField(default=dict)
+    github_url = models.URLField(max_length=255, blank=True, null=True)
     is_online=models.BooleanField(default=False)
     is_phone_verified=models.BooleanField(default=False)
-
+    years_experience = models.PositiveIntegerField(default=0) # Added
 
     liked_by=models.ManyToManyField(
         'self',

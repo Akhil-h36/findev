@@ -34,14 +34,15 @@ class DeveloperRepository:
 #  write operation -creation of profile
 
 
-    def create_user_with_profile(self, username: str, password: str,
-                                 tech_stack: str, phone_number: str) -> DeveloperEntity:
+    def create_user_with_profile(self, username, password, phone_number, github_url, years_experience, tech_stack_data):
         user = User.objects.create_user(username=username, password=password)
         profile = DeveloperModel.objects.create(
             user=user,
             phone_number=phone_number,
-            tech_stack_raw=tech_stack,
-            is_phone_verified=False,        # verified after OTP check
+            github_url=github_url,
+            years_experience=years_experience,
+            tech_stack_data=tech_stack_data, # Directly saving the JSON from the UI
+            is_phone_verified=False,
         )
         return self._to_entity(profile)
  
