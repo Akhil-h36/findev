@@ -12,12 +12,12 @@ class DeveloperProfileSerializer(serializers.ModelSerializer):
     username=serializers.CharField(source='user.username',read_only=True)
 
 
-    class META:
+    class Meta:
         model=DeveloperModel
         fields=['id', 'username', 'bio', 'tech_stack_raw', 'is_online', 'images']
     
 
-    def validateimages(self,value):
+    def validate_images(self, value):
         if self.isinstance and self.instance.images.count()>=5:
             raise serializers.ValidationError("you can only have a maximum of 5 profile picture")
         
@@ -28,9 +28,9 @@ class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     password = serializers.CharField(write_only=True, min_length=8)
     phone_number = serializers.CharField(max_length=15)
-    github_url = serializers.URLField(required=False, allow_blank=True)
+    github_url = serializers.URLField(required=False, allow_blank=True, default='')
     years_experience = serializers.IntegerField(min_value=0)
-    tech_stack_data = serializers.JSONField() 
+    tech_stack_data = serializers.JSONField(required=False,default=dict) 
 
     def validate_phone_number(self, value):
         if not value.lstrip('+').isdigit():

@@ -6,6 +6,7 @@ from core.interface.views import (
     LoginView,
     SwipeView,
     DiscoveryView,
+    UpdateTechStackView
 )
 
 
@@ -20,6 +21,7 @@ urlpatterns=[
     # app
     path('swipe/<int:target_id>',SwipeView.as_view(),name='swipe'),
     path('discover/',DiscoveryView.as_view(), name='discovery'),
+    path('auth/update-tech-stack/', UpdateTechStackView.as_view(), name='update-tech-stack'),
 ]
 
 

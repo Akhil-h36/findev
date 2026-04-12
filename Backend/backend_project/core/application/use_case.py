@@ -2,7 +2,7 @@ from core.domain.entities import DeveloperEntity
 from core.infrastructure.repositories import DeveloperRepository
 from core.infrastructure.whatsapp_otp_service import WhatsAppOTPService
 from django.contrib.auth import authenticate
-
+from rest_framework_simplejwt.tokens import RefreshToken
 
 # user rejistration
 
@@ -11,12 +11,18 @@ class RegisterUserUseCase:
         self.repository=repository
         self.otp_service=otp_service
     
-    def execute(self,username,password,tech_stack,phone_number):
-        entity=self.repository.create_user_with_profile(
-            username=username, 
-            password=password, 
-            tech_stack=tech_stack,
-            phone_number=phone_number)
+    def execute(self, username, password,phone_number,github_url='', years_experience=0,tech_stack=None):
+        if tech_stack is None:
+            tech_stack = {}
+            
+        entity = self.repository.create_user_with_profile(
+            username=username,
+            password=password,
+            phone_number=phone_number,
+            github_url=github_url,
+            years_experience=years_experience,
+            tech_stack_data=tech_stack,
+        )
         
         verification_sid=self.otp_service.send_otp(phone_number)
 
@@ -86,11 +92,8 @@ class LoginUseCase:
         if user is None:
             return {"status":"error","message":"invalid credentials"}
         
-        if user.profile.is_phone_verified:
-            return{
-                "status": "error",
-                "message": "Phone number not verified. Please complete OTP verification.",
-            }
+        if not user.profile.is_phone_verified:
+            return {"status": "error", "message": "Phone not verified..."}
  
         tokens = _generate_tokens_for_django_user(user)
         return {"status": "success", **tokens}
@@ -108,7 +111,7 @@ class SwipeRightUseCase:
         self.repository.add_like(swiper_id,target_id)
 
         if self.repository.check_mutual_like(target_id,swiper_id):
-            return{"status":"match","target":target}
+            return {"status": "match", "target_id": target.id, "target_username": target.username}
         return {"status":"liked"}
 
 class SwipeleftUseCase:

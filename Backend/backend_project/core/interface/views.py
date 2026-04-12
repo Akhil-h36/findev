@@ -48,7 +48,7 @@ class RegisterView(APIView):
             result = use_case.execute(
                 username=data['username'],
                 password=data['password'],
-                tech_stack=data['tech_stack'],
+                tech_stack=data.get('tech_stack_data', {}),
                 phone_number=data['phone_number'],
             )
         except RateLimitError as e:
@@ -156,10 +156,10 @@ class SwipeView(APIView):
         action=request.data.get('action')
         repo= DeveloperRepository()
 
-        if action =='Like':
-            use_case=SwipeRightUseCase(repo)
+        if action == 'like':           # also normalise case
+            use_case = SwipeRightUseCase(repo)
         elif action == 'reject':
-            use_case=SwipeRightUseCase(repo)
+            use_case = SwipeleftUseCase(repo) 
         else:
             return Response({"error":"invalid action"} ,status=400)
 
@@ -176,3 +176,14 @@ class DiscoveryView(ListAPIView):
         repo = DeveloperRepository()
         use_case = GetDiscoveryProfilesUseCase(repo)
         return use_case.execute(self.request.user.profile.id)
+
+class UpdateTechStackView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        tech_stack = request.data.get('tech_stack')
+        if not tech_stack:
+            return Response({"error": "tech_stack is required"}, status=400)
+        request.user.profile.tech_stack_data = tech_stack
+        request.user.profile.save(update_fields=['tech_stack_data'])
+        return Response({"status": "updated"})

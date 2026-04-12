@@ -25,8 +25,9 @@ class DeveloperRepository:
 
     def get_discovery_list(self,current_user_id):
         user_profile=DeveloperModel.objects.get(id=current_user_id)
-        already_swiped=list(user_profile.liked_by.values_list('id',flat=True)+\
-                            list(user_profile.rejected_by.values_list('id',flat=True)))
+        liked    = list(user_profile.liked_by.values_list('id', flat=True))
+        rejected = list(user_profile.rejected_by.values_list('id', flat=True))
+        already_swiped = liked + rejected
         already_swiped.append(user_profile.id)
         return DeveloperModel.objects.exclude(id__in=already_swiped)
 
@@ -88,12 +89,14 @@ class DeveloperRepository:
 
     
     def _to_entity(self, model: DeveloperModel):
-     
         from core.domain.entities import DeveloperEntity
         return DeveloperEntity(
             id=model.id,
             username=model.user.username,
-            tech_stack=model.tech_stack_raw.split(','),
+            tech_stack_data=model.tech_stack_data,   # was tech_stack=...split()
+            years_experience=model.years_experience,
+            images=[img.image.url for img in model.images.all()],
             is_online=model.is_online,
-            bio=model.bio
+            bio=model.bio,
+            github_url=model.github_url,
         )
