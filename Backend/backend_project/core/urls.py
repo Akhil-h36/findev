@@ -7,7 +7,7 @@ from core.interface.views import (
     SwipeView,
     DiscoveryView,
     UpdateTechStackView,
-    RequestOTPView
+    RequestOTPVi
 )
 
 
