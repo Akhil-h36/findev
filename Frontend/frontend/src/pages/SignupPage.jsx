@@ -5,6 +5,7 @@ import Background from '../components/layout/Background'
 import Navbar from '../components/layout/Navbar'
 import FloatingInput from '../components/ui/FloatingInput'
 
+
 function RolePill({ label, selected, onClick }) {
   return (
     <div
@@ -32,8 +33,11 @@ export default function SignupPage() {
   const [role, setRole]     = useState('')
   const [form, setForm]     = useState({ firstName: '', lastName: '', username: '', githubHandle: '', phoneNumber: '', password: '', confirmPassword: '' })
   const [errors, setErrors] = useState({})
+  const [submitting, setSubmitting] = useState(false)
 
   const set = (key) => (e) => setForm((p) => ({ ...p, [key]: e.target.value }))
+  const rawPhone = form.phoneNumber.trim()
+  const phone_number = rawPhone.startsWith('+') ? rawPhone : `+91${rawPhone}`
 
   const validateStep1 = () => {
     const errs = {}
@@ -41,8 +45,13 @@ export default function SignupPage() {
     if (!form.lastName.trim())    errs.lastName    = 'Required'
     if (!form.username.trim())    errs.username    = 'Required'
     if (!form.phoneNumber.trim()) errs.phoneNumber = 'Required'
+
+    const phone = form.phoneNumber.trim().replace(/^\+91/, '')
+    if (!/^\d{10}$/.test(phone)) errs.phoneNumber = 'Enter a valid 10-digit mobile number'
     return errs
   }
+
+  
 
   const validateStep2 = () => {
     const errs = {}
@@ -55,24 +64,26 @@ export default function SignupPage() {
   const nextStep = () => {
     const errs = validateStep1()
     if (Object.keys(errs).length) { setErrors(errs); return }
-    setErrors({}); setStep(2)
-  }
+    setErrors({})   // ← clears ALL errors before moving to step 2
+    setStep(2)
+    }
 
   const sendOTP = () => {
     const errs = validateStep2()
     if (Object.keys(errs).length) { setErrors(errs); return }
     setErrors({})
+
     sessionStorage.setItem('signup_data', JSON.stringify({
-      username:     form.username,
-      password:     form.password,
-      phone_number: form.phoneNumber,
-      github_url:   form.githubHandle ? `https://github.com/${form.githubHandle}` : '',
-      first_name:   form.firstName,
-      last_name:    form.lastName,
-      role,
+        username:         form.username,
+        password:         form.password,
+        phone_number:     form.phoneNumber.startsWith('+') ? form.phoneNumber : `+91${form.phoneNumber}`,
+        github_url:       form.githubHandle ? `https://github.com/${form.githubHandle}` : '',
+        years_experience: 0,
+        tech_stack_data:  {},
+        role,
     }))
     navigate('/otp')
-  }
+    }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 pt-24 pb-16 relative animate-page-enter" style={{ background: '#faf9ff' }}>
@@ -113,7 +124,13 @@ export default function SignupPage() {
 
             <FloatingInput id="s-github" label="GitHub / GitLab handle" value={form.githubHandle} onChange={set('githubHandle')} />
 
-            <FloatingInput id="s-phone" label="Phone number (+91…)" type="tel" value={form.phoneNumber} onChange={set('phoneNumber')} />
+            <FloatingInput
+            id="s-phone"
+            label="Phone number (10 digits or +91…)"
+            type="tel"
+            value={form.phoneNumber}
+            onChange={set('phoneNumber')}
+            />
             {errors.phoneNumber && <p className="text-[11px] text-red-400 font-mono -mt-4 mb-4">{errors.phoneNumber}</p>}
 
             <div className="flex mt-4">
@@ -136,6 +153,9 @@ export default function SignupPage() {
             </p>
           </div>
         )}
+
+        
+
 
         {/* STEP 2 */}
         {step === 2 && (
@@ -163,6 +183,16 @@ export default function SignupPage() {
               </div>
             </div>
 
+            {/* errorrrrrrrrrrrrr */}
+
+            {errors.form && (
+                <p className="text-xs font-mono text-red-500 mb-4 bg-red-50 px-4 py-2 rounded-xl border border-red-100">
+                    {errors.form}
+                </p>
+            )}
+
+
+
             <div className="flex gap-3 mt-4">
               <button
                 onClick={() => { setStep(1); setErrors({}) }}
@@ -172,14 +202,18 @@ export default function SignupPage() {
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(139,92,246,0.22)'; e.currentTarget.style.color = '#8b84b8' }}
               >←</button>
               <button
-                onClick={sendOTP}
-                className="flex-1 py-[15px] rounded-2xl font-sans text-[15px] font-medium text-white border-0 cursor-pointer transition-all hover:-translate-y-px"
-                style={{ background: '#7c3aed' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#6d28d9'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(124,58,237,0.25)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#7c3aed'; e.currentTarget.style.boxShadow = 'none' }}
-              >
-                Send OTP →
-              </button>
+                    onClick={sendOTP}
+                    disabled={submitting}
+                    className="flex-1 py-[15px] rounded-2xl font-sans text-[15px] font-medium text-white border-0 cursor-pointer transition-all hover:-translate-y-px"
+                    style={{
+                        background: submitting ? '#a78bfa' : '#7c3aed',
+                        cursor: submitting ? 'not-allowed' : 'pointer',
+                    }}
+                    onMouseEnter={(e) => { if (!submitting) { e.currentTarget.style.background = '#6d28d9'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(124,58,237,0.25)' } }}
+                    onMouseLeave={(e) => { if (!submitting) { e.currentTarget.style.background = '#7c3aed'; e.currentTarget.style.boxShadow = 'none' } }}
+                    >
+                    {submitting ? 'Creating account...' : 'Send OTP →'}
+                </button>
             </div>
           </div>
         )}

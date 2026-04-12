@@ -6,7 +6,8 @@ from core.interface.views import (
     LoginView,
     SwipeView,
     DiscoveryView,
-    UpdateTechStackView
+    UpdateTechStackView,
+    RequestOTPView
 )
 
 
@@ -16,6 +17,7 @@ urlpatterns=[
     path('auth/register/',    RegisterView.as_view(),  name='register'),
     path('auth/verify-otp/',  VerifyOTPView.as_view(), name='verify-otp'),
     path('auth/resend-otp/',  ResendOTPView.as_view(), name='resend-otp'),
+    path('auth/request-otp/', RequestOTPView.as_view(), name='request-otp'),
     path('auth/login/',       LoginView.as_view(),     name='login'),
 
     # app

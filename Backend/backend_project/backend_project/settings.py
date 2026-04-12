@@ -165,3 +165,9 @@ TWILIO_AUTH_TOKEN    = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_VERIFY_SID    = os.getenv('TWILIO_VERIFY_SID')
 TWILIO_WHATSAPP_FROM = os.getenv('TWILIO_WHATSAPP_FROM', 'whatsapp:+14155238886')
 TWILIO_USE_SANDBOX   = os.getenv('TWILIO_USE_SANDBOX', 'True') == 'True'
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}

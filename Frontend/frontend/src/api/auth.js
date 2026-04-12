@@ -18,6 +18,9 @@ api.interceptors.request.use((config) => {
  */
 export const register = (data) => api.post('/auth/register/', data)
 
+
+export const requestOTP = (data) => api.post('/auth/request-otp/', data)
+
 /**
  * POST /auth/verify-otp/
  * { phone_number, code }

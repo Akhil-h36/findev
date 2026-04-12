@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Background from '../components/layout/Background'
 import Navbar from '../components/layout/Navbar'
-import { verifyOTP, resendOTP, register } from '../api/auth'
+import { verifyOTP, resendOTP, requestOTP  } from '../api/auth'
 
 export default function OTPPage() {
   const navigate = useNavigate()
@@ -14,6 +14,7 @@ export default function OTPPage() {
   const [cooldown, setCooldown]       = useState(0)
   const [errMsg, setErrMsg]           = useState('')
   const inputRefs = useRef([])
+  
 
   const signupData = (() => {
     try { return JSON.parse(sessionStorage.getItem('signup_data') || '{}') } catch { return {} }
@@ -28,6 +29,27 @@ export default function OTPPage() {
     const t = setTimeout(() => setCooldown((c) => c - 1), 1000)
     return () => clearTimeout(t)
   }, [cooldown])
+
+
+
+
+  const otpSent = useRef(false)
+
+    useEffect(() => {
+    if (otpSent.current) return   // prevent double-fire in React StrictMode
+    otpSent.current = true
+
+    const data = JSON.parse(sessionStorage.getItem('signup_data') || '{}')
+    if (data.phone_number) {
+        requestOTP({ phone_number: data.phone_number }).catch(() => {
+        setErrMsg('Failed to send OTP. Go back and try again.')
+        })
+    } else {
+        navigate('/signup')
+    }
+    }, [])
+
+
 
   useEffect(() => {
     if (digits.every((d) => d !== '')) setTimeout(() => handleVerify(), 300)
@@ -57,26 +79,26 @@ export default function OTPPage() {
     if (status === 'loading') return
     setStatus('loading'); setErrMsg('')
 
-    try {
-      const data = signupData
-      try {
-        await register({ username: data.username, password: data.password, phone_number: data.phone_number, github_url: data.github_url || '', first_name: data.first_name || '', last_name: data.last_name || '', tech_stack: data.tech_stack || {} })
-      } catch (regErr) {
-        const msg = regErr.response?.data?.error || ''
-        if (!msg.toLowerCase().includes('already')) throw regErr
-      }
+        try {
+            const { data: res } = await verifyOTP({
+            phone_number: signupData.phone_number,
+            code,
+            signup_data: signupData,   // backend creates user here, after OTP confirmed
+            })
 
-      const { data: res } = await verifyOTP({ phone_number: data.phone_number, code })
-      if (res.status === 'verified') {
-        setStatus('success'); setTimeout(() => navigate('/stack'), 900)
-      } else {
-        setStatus('error'); setErrMsg(res.message || 'Invalid code.')
-      }
-    } catch (err) {
-      setStatus('error')
-      setErrMsg(err.response?.data?.error || err.response?.data?.detail || 'Verification failed.')
+            if (res.status === 'verified') {
+            localStorage.setItem('access_token', res.access)
+            setStatus('success')
+            setTimeout(() => navigate('/stack'), 900)
+            } else {
+            setStatus('error')
+            setErrMsg(res.message || 'Invalid code.')
+            }
+        } catch (err) {
+            setStatus('error')
+            setErrMsg(err.response?.data?.error || err.response?.data?.detail || 'Verification failed.')
+        }
     }
-  }
 
   const handleResend = async () => {
     if (cooldown > 0) return

@@ -83,13 +83,12 @@ class WhatsAppOTPService:
     # ------------------------------------------------------------------ #
  
     def _send_sandbox_otp(self, formatted_number: str) -> str:
-        # secrets.randbelow is cryptographically secure unlike random.randint
         otp = str(secrets.randbelow(10 ** self.OTP_LENGTH)).zfill(self.OTP_LENGTH)
- 
+
         cache_key = self._otp_cache_key(formatted_number)
         cache.set(cache_key, otp, timeout=self.OTP_EXPIRY_SECONDS)
- 
-        self.client.messages.create(
+
+        message = self.client.messages.create(
             from_=self.from_number,
             to=f'whatsapp:{formatted_number}',
             body=(
@@ -97,10 +96,16 @@ class WhatsAppOTPService:
                 f'It expires in 10 minutes. Do not share it with anyone.'
             )
         )
-        # Set rate-limit marker AFTER successful send
+        
+        # ADD THESE DEBUG LINES
+        print(f"DEBUG Twilio SID: {message.sid}")
+        print(f"DEBUG Twilio status: {message.status}")
+        print(f"DEBUG sending to: whatsapp:{formatted_number}")
+        print(f"DEBUG from: {self.from_number}")
+        print(f"DEBUG otp: {otp}")  # remove this after testing
+        
         self._set_rate_limit(formatted_number)
         return cache_key
- 
     def _verify_sandbox_otp(self, formatted_number: str, code: str) -> bool:
         cache_key = self._otp_cache_key(formatted_number)
         stored_otp = cache.get(cache_key)

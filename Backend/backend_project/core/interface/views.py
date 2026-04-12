@@ -13,6 +13,8 @@ from core.application.use_case import (
     SwipeRightUseCase,
     SwipeleftUseCase,
     GetDiscoveryProfilesUseCase,
+    _generate_tokens_for_user_id,
+    
 )
 
 from rest_framework.generics import ListAPIView
@@ -59,6 +61,21 @@ class RegisterView(APIView):
         return Response(result, status=201)
  
  
+class RequestOTPView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        phone_number = request.data.get('phone_number')
+        if not phone_number:
+            return Response({"error": "phone_number required"}, status=400)
+        otp_service = WhatsAppOTPService()
+        try:
+            verification_sid = otp_service.send_otp(phone_number)
+        except RateLimitError as e:
+            return Response({"error": str(e)}, status=429)
+        return Response({"status": "otp_sent"})
+
+
 class VerifyOTPView(APIView):
     """
     POST /api/auth/verify-otp/
@@ -72,22 +89,32 @@ class VerifyOTPView(APIView):
         serializer = VerifyOTPSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
- 
+
         data = serializer.validated_data
-        repo = DeveloperRepository()
         otp_service = WhatsAppOTPService()
-        use_case = VerifyOTPUseCase(repo, otp_service)
- 
+        approved = otp_service.verify_otp(data['phone_number'], data['code'])
+
+        if not approved:
+            return Response({"error": "Invalid or expired OTP"}, status=400)
+
+        # NOW create the user, after OTP is confirmed
+        signup_data = request.data.get('signup_data')  # frontend sends this too
+        repo = DeveloperRepository()
         try:
-            result = use_case.execute(
+            entity = repo.create_user_with_profile(
+                username=signup_data['username'],
+                password=signup_data['password'],
                 phone_number=data['phone_number'],
-                code=data['code'],
+                github_url=signup_data.get('github_url', ''),
+                years_experience=signup_data.get('years_experience', 0),
+                tech_stack_data=signup_data.get('tech_stack_data', {}),
             )
         except Exception as e:
             return Response({"error": str(e)}, status=400)
- 
-        status_code = 200 if result['status'] == 'verified' else 400
-        return Response(result, status=status_code)
+
+        repo.mark_phone_verified(data['phone_number'])
+        tokens = _generate_tokens_for_user_id(entity.id)
+        return Response({"status": "verified", **tokens})
  
  
 class ResendOTPView(APIView):
