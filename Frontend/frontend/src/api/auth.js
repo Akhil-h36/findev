@@ -6,11 +6,18 @@ const BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 const api = axios.create({ baseURL: BASE })
 
 // Attach JWT from localStorage on every request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
-})
+    api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('access_token')
+    const isAuthRoute = config.url?.includes('/auth/login') || 
+                        config.url?.includes('/auth/register') ||
+                        config.url?.includes('/auth/verify-otp') ||
+                        config.url?.includes('/auth/request-otp')
+    
+    if (token && !isAuthRoute) {
+        config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+    })
 
 /**
  * POST /auth/register/
