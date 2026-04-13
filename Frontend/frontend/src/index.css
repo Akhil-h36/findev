@@ -1,60 +1,87 @@
-@import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&display=swap');
+/* ── DevMatch Global Animations ──
+   Add these to your existing index.css or App.css
+   These are required by Discover.jsx and its sub-components
+*/
 
-/* @tailwind base;
-@tailwind components;
-@tailwind utilities; */
-
-
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  --border-soft: rgba(139,92,246,0.12);
-  --border-mid:  rgba(139,92,246,0.22);
+  --pastel-purple: #ede8ff;
+  --pastel-mid: #d4c8ff;
+  --purple: #8b5cf6;
+  --purple-dark: #6d28d9;
+  --purple-light: #a78bfa;
+  --purple-deep: #4c1d95;
+  --white: #ffffff;
+  --off-white: #f8f6ff;
+  --surface: #f3f0ff;
+  --surface2: #ede8ff;
+  --border: #ddd6fe;
+  --border-light: #ede9fe;
+  --text-main: #2e1065;
+  --text-mid: #5b21b6;
+  --text-muted: #8b7eb8;
+  --text-faint: #c4b5fd;
+  --accent-green: #10b981;
+  --accent-red: #f43f5e;
+  --accent-amber: #f59e0b;
+  --shadow-sm: 0 2px 8px rgba(139,92,246,0.10);
+  --shadow-md: 0 4px 24px rgba(139,92,246,0.14);
+  --shadow-lg: 0 8px 40px rgba(139,92,246,0.18);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Outfit', sans-serif;
 }
 
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  font-family: 'DM Sans', sans-serif;
-  background: #ffffff;
-  color: #1e1b4b;
-  overflow-x: hidden;
+  font-family: var(--sans);
+  background: white;
+  color: var(--text-main);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Noise texture */
-.noise-overlay {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  opacity: 0.4;
-}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ddd6fe; border-radius: 2px; }
 
-/* Floating dot grid */
-.bg-dots {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background-image: radial-gradient(circle, rgba(167,139,250,0.18) 1px, transparent 1px);
-  background-size: 32px 32px;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
-/* Field line animation */
-.field-line {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 0;
-  height: 1.5px;
-  background: #8b5cf6;
-  transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
 }
-
-.field-group:focus-within .field-line {
-  width: 100%;
+@keyframes heartBeat {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.28); }
+}
+@keyframes matchIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes flyRight {
+  to {
+    transform: translateX(130%) rotate(22deg);
+    opacity: 0;
+  }
+}
+@keyframes flyLeft {
+  to {
+    transform: translateX(-130%) rotate(-22deg);
+    opacity: 0;
+  }
+}
+@keyframes orbFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%       { transform: translateY(-16px) scale(1.04); }
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
