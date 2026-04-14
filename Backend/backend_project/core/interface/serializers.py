@@ -3,18 +3,55 @@ from core.infrastructure.models import DeveloperModel,ProfileImage
 
 
 class ProfileImageSerializer(serializers.ModelSerializer):
+    url = serializers.ImageField(source='image', read_only=True)
     class Meta:
         model=ProfileImage
         fields=['id','image','is_primary']
+
+
+class PhotoUploadSerializer(serializers.Serializer):
+    # This matches your model's requirement for the images relation
+    uploaded_images = serializers.ListField(
+        child=serializers.ImageField(max_length=1000000, allow_empty_file=False, use_url=False),
+        write_only=True
+    )
+
+    def validate_uploaded_images(self, value):
+        if len(value) < 3:
+            raise serializers.ValidationError("At least 3 pictures are required.")
+        return value
+
+
+
     
 class DeveloperProfileSerializer(serializers.ModelSerializer):
+
+
+    username=serializers.CharField(source='user.username',read_only=True)
     images=ProfileImageSerializer(many=True,read_only=True)
     username=serializers.CharField(source='user.username',read_only=True)
+    stack = serializers.JSONField(source='tech_stack_data', read_only=True)
 
 
     class Meta:
         model=DeveloperModel
-        fields=['id', 'username', 'bio', 'tech_stack_raw', 'is_online', 'images']
+        fields = [
+            'id', 
+            'username', 
+            'bio', 
+            'stack', # Maps from tech_stack_data
+            'is_online', 
+            'images', # Matches your ProfileImage relationship
+            'github_url', 
+            'years_experience'
+        ]
+
+    def get_experience(self, obj):
+        return f"{obj.years_experience} years"
+
+    def get_initials(self, obj):
+        name = obj.user.username
+        return [char.upper() for char in name[:2]] if name else ["D", "V"]
     
 
     def validate_images(self, value):

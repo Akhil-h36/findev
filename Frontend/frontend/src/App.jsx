@@ -7,6 +7,7 @@ import LandingPage from './pages/LandingPage'
 import OTPPage from './pages/OTPPage'
 import TechStackPage from './pages/TechStackPage'
 import Discover from './pages/Discover'
+import PhotoSelectionPage from './pages/PhotoSelectionPage'
 
 // Placeholder stubs — build these next
 
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/otp"      element={<OTPPage />} />
           <Route path="/stack"    element={<TechStackPage />} />
           <Route path='/discover' element={<Discover/>}/>
+          <Route path="/photos" element={<PhotoSelectionPage />} />
          
         </Routes>
       </BrowserRouter>

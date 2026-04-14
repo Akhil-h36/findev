@@ -48,4 +48,14 @@ export const login = (data) => api.post('/auth/login/', data)
 
 
 export const updateTechStack = (data) => api.patch('/auth/update-tech-stack/', data)
+
+
+export const uploadPhotos = (formData) => api.post('/auth/upload-photos/', formData, {
+  headers: {
+    'Content-Type': 'multipart/form-data',
+  },
+});
+
+
+
 export default api

@@ -1,54 +1,127 @@
-/* ── DevMatch Global Animations ──
-   Add these to your existing index.css or App.css
-   These are required by Discover.jsx and its sub-components
-*/
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* ─────────────────────────────────────────
+   Tailwind v4 — custom design tokens
+   These power utility classes like:
+   text-lavender-600, font-serif, text-text-dark
+───────────────────────────────────────── */
+@theme {
+  --font-sans:  'DM Sans', sans-serif;
+  --font-serif: 'Fraunces', serif;
+  --font-mono:  'DM Mono', monospace;
 
-:root {
-  --pastel-purple: #ede8ff;
-  --pastel-mid: #d4c8ff;
-  --purple: #8b5cf6;
-  --purple-dark: #6d28d9;
-  --purple-light: #a78bfa;
-  --purple-deep: #4c1d95;
-  --white: #ffffff;
-  --off-white: #f8f6ff;
-  --surface: #f3f0ff;
-  --surface2: #ede8ff;
-  --border: #ddd6fe;
-  --border-light: #ede9fe;
-  --text-main: #2e1065;
-  --text-mid: #5b21b6;
-  --text-muted: #8b7eb8;
-  --text-faint: #c4b5fd;
-  --accent-green: #10b981;
-  --accent-red: #f43f5e;
-  --accent-amber: #f59e0b;
-  --shadow-sm: 0 2px 8px rgba(139,92,246,0.10);
-  --shadow-md: 0 4px 24px rgba(139,92,246,0.14);
-  --shadow-lg: 0 8px 40px rgba(139,92,246,0.18);
-  --radius: 16px;
-  --radius-sm: 10px;
-  --radius-xs: 6px;
-  --mono: 'JetBrains Mono', monospace;
-  --sans: 'Outfit', sans-serif;
+  --color-lavender-50:  #f5f3ff;
+  --color-lavender-100: #ede9fe;
+  --color-lavender-200: #ddd6fe;
+  --color-lavender-300: #c4b5fd;
+  --color-lavender-400: #a78bfa;
+  --color-lavender-500: #8b5cf6;
+  --color-lavender-600: #7c3aed;
+  --color-lavender-700: #6d28d9;
+  --color-lavender-800: #5b21b6;
+  --color-lavender-900: #4c1d95;
+
+  --color-text-dark:  #1e1b4b;
+  --color-text-mid:   #5b21b6;
+  --color-text-soft:  #6b7280;
+  --color-text-ghost: #9ca3af;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/* ─────────────────────────────────────────
+   CSS custom properties
+   Used by Discover + inline styles
+───────────────────────────────────────── */
+:root {
+  --border-soft:   rgba(139,92,246,0.12);
+  --border-mid:    rgba(139,92,246,0.22);
 
+  --pastel-purple: #ede8ff;
+  --pastel-mid:    #d4c8ff;
+  --purple:        #8b5cf6;
+  --purple-dark:   #6d28d9;
+  --purple-light:  #a78bfa;
+  --purple-deep:   #4c1d95;
+  --off-white:     #f8f6ff;
+  --surface:       #f3f0ff;
+  --surface2:      #ede8ff;
+  --border:        #ddd6fe;
+  --border-light:  #ede9fe;
+  --text-main:     #2e1065;
+  --text-mid:      #5b21b6;
+  --text-muted:    #8b7eb8;
+  --text-faint:    #c4b5fd;
+  --accent-green:  #10b981;
+  --accent-red:    #f43f5e;
+  --accent-amber:  #f59e0b;
+  --shadow-sm:     0 2px 8px rgba(139,92,246,0.10);
+  --shadow-md:     0 4px 24px rgba(139,92,246,0.14);
+  --shadow-lg:     0 8px 40px rgba(139,92,246,0.18);
+  --radius:        16px;
+  --radius-sm:     10px;
+  --radius-xs:     6px;
+
+  /* Discover uses var(--sans) and var(--mono) directly */
+  --sans: 'DM Sans', 'Outfit', sans-serif;
+  --mono: 'DM Mono', 'JetBrains Mono', monospace;
+}
+
+/* ─────────────────────────────────────────
+   Base — DO NOT add margin/padding reset here,
+   Tailwind v4 preflight already handles it
+───────────────────────────────────────── */
 body {
-  font-family: var(--sans);
-  background: white;
-  color: var(--text-main);
+  font-family: 'DM Sans', sans-serif;
+  background: #ffffff;
+  color: #1e1b4b;
+  overflow-x: hidden;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
 
-::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar       { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #ddd6fe; border-radius: 2px; }
 
+/* ─────────────────────────────────────────
+   Background helpers (Background.jsx)
+───────────────────────────────────────── */
+.noise-overlay {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.018;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+.bg-dots {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image: radial-gradient(circle, rgba(139,92,246,0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ─────────────────────────────────────────
+   Animation keyframes
+───────────────────────────────────────── */
+@keyframes page-enter {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes step-in {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes float-badge {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -66,16 +139,10 @@ body {
   to   { opacity: 1; transform: scale(1); }
 }
 @keyframes flyRight {
-  to {
-    transform: translateX(130%) rotate(22deg);
-    opacity: 0;
-  }
+  to { transform: translateX(130%) rotate(22deg); opacity: 0; }
 }
 @keyframes flyLeft {
-  to {
-    transform: translateX(-130%) rotate(-22deg);
-    opacity: 0;
-  }
+  to { transform: translateX(-130%) rotate(-22deg); opacity: 0; }
 }
 @keyframes orbFloat {
   0%, 100% { transform: translateY(0) scale(1); }
@@ -85,3 +152,16 @@ body {
   from { opacity: 0; transform: translateY(20px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* ─────────────────────────────────────────
+   Animation utility classes
+───────────────────────────────────────── */
+.animate-page-enter   { animation: page-enter 0.4s ease both; }
+.animate-fade-up      { animation: fade-up 0.5s ease both; }
+.animate-fade-up-1    { animation: fade-up 0.5s 0.08s ease both; }
+.animate-fade-up-2    { animation: fade-up 0.5s 0.16s ease both; }
+.animate-fade-up-3    { animation: fade-up 0.5s 0.24s ease both; }
+.animate-step-in      { animation: step-in 0.35s cubic-bezier(0.4,0,0.2,1) both; }
+.animate-float-badge  { animation: float-badge 3.2s ease-in-out infinite; }
+.animate-float-badge2 { animation: float-badge 3.8s ease-in-out infinite 0.6s; }
+.animate-float-badge3 { animation: float-badge 4.2s ease-in-out infinite 1.1s; }

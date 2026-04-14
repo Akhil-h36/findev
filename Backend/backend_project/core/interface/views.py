@@ -17,13 +17,15 @@ from core.application.use_case import (
     
 )
 
-from rest_framework.generics import ListAPIView
+from core.infrastructure.models import ProfileImage
+from rest_framework.generics import ListAPIView,RetrieveUpdateAPIView
 from core.interface.serializers import (
     RegisterSerializer,
     VerifyOTPSerializer,
     ResendOTPSerializer,
     LoginSerializer,
     DeveloperProfileSerializer,
+    PhotoUploadSerializer
 )
 
 class RegisterView(APIView):
@@ -214,3 +216,36 @@ class UpdateTechStackView(APIView):
         request.user.profile.tech_stack_data = tech_stack
         request.user.profile.save(update_fields=['tech_stack_data'])
         return Response({"status": "updated"})
+    
+
+class PhotoUploadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PhotoUploadSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        
+        developer = request.user.profile
+        images = serializer.validated_data['uploaded_images']
+        
+        # Clear existing images if they are re-uploading during onboarding
+        developer.images.all().delete()
+
+        for index, img in enumerate(images):
+            ProfileImage.objects.create(
+                developer=developer,
+                image=img,
+                is_primary=(index == 0) # First image is primary by default
+            )
+            
+        return Response({"status": "success", "message": "Photos uploaded successfully."})
+
+
+class MyProfileView(RetrieveUpdateAPIView):
+    """Handles GET (fetch own data) and PATCH (update bio/stack/exp)"""
+    serializer_class = DeveloperProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user.profile

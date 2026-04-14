@@ -82,7 +82,8 @@ export default function TechStackPage() {
       await updateTechStack({ tech_stack })
       sessionStorage.removeItem('signup_data')
       setStatus('success')
-      setTimeout(() => navigate('/discover'), 900)
+      
+     setTimeout(() => navigate('/photos'), 600);
     } catch (err) {
       setStatus('error')
       setErrMsg(err.response?.data?.error || err.response?.data?.detail || 'Something went wrong.')

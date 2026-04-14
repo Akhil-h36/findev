@@ -7,6 +7,7 @@ from core.interface.views import (
     SwipeView,
     DiscoveryView,
     UpdateTechStackView,
+    PhotoUploadView, MyProfileView,
     RequestOTPView
 )
 
@@ -18,6 +19,7 @@ urlpatterns=[
     path('auth/verify-otp/',  VerifyOTPView.as_view(), name='verify-otp'),
     path('auth/resend-otp/',  ResendOTPView.as_view(), name='resend-otp'),
     path('auth/request-otp/', RequestOTPView.as_view(), name='request-otp'),
+    path('auth/upload-photos/', PhotoUploadView.as_view(), name='upload-photos'),
     path('auth/login/',       LoginView.as_view(),     name='login'),
 
     # app

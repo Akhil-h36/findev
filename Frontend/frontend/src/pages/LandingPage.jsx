@@ -13,8 +13,11 @@ export default function LandingPage() {
     if (didNavigate.current) return
     didNavigate.current = true
     setFadeOut(true)
-    setTimeout(() => navigate('/login'), 500)
-  }
+    setTimeout(() => {
+        setHidden(true)        // ADD THIS — hides overlay after fade
+        navigate('/login')
+    }, 500)
+    }
 
   // Dynamically import lottie-react so we can safely handle export shape
   useEffect(() => {
@@ -37,12 +40,13 @@ export default function LandingPage() {
     <div
       style={{
         position: 'fixed', inset: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: hidden ? 'none' : 'flex',   // ADD THIS
+        alignItems: 'center', justifyContent: 'center',
         backgroundColor: '#faf9ff',
         zIndex: 1000, overflow: 'hidden',
         opacity: fadeOut ? 0 : 1,
         transition: 'opacity 0.5s ease',
-      }}
+        }}
     >
       {/* No blobs here — flat bg needed for mix-blend-mode to work correctly */}
 
