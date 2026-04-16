@@ -9,7 +9,7 @@ export default function ProfileCard({ profile, onLike, onReject, onSuperLike, fl
   const [photoIdx, setPhotoIdx] = useState(0)
   const photos = profile.photos || []
   const total  = photos.length
-  const photo  = photos[photoIdx]
+  const photo = photos[photoIdx]
 
   const prevPhoto = useCallback((e) => {
     e.stopPropagation()
@@ -45,7 +45,13 @@ export default function ProfileCard({ profile, onLike, onReject, onSuperLike, fl
     <div style={{ ...s.wrap, ...flyStyle }}>
 
       {/* ── THE CARD ── */}
-      <div style={{ ...s.card, background: photo?.bg || '#ede8ff' }} onClick={handleCardTap}>
+      <div style={{
+        ...s.card,
+        background: photo?.bg || '#ede8ff',
+        backgroundImage: photo?.url ? `url(${photo.url})` : 'none',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        }} onClick={handleCardTap}>
 
         {/* Photo indicator dots */}
         <div style={s.photoDots}>
@@ -59,14 +65,25 @@ export default function ProfileCard({ profile, onLike, onReject, onSuperLike, fl
         <div style={s.tapRight} onClick={nextPhoto}>›</div>
 
         {/* Big emoji / photo placeholder */}
-        <div style={s.photoContent}>
+        {/* <div style={s.photoContent}>
           <div style={s.emojiWrap}>
             <span style={s.emoji}>{photo?.emoji || '🧑‍💻'}</span>
           </div>
           {photo?.caption && (
             <div style={s.photoCaption}>{photo.caption}</div>
           )}
+        </div> */}
+        {!photo?.url && (
+        <div style={s.photoContent}>
+            <div style={s.emojiWrap}>
+            <span style={s.emoji}>{photo?.emoji || '🧑‍💻'}</span>
+            </div>
+            {photo?.caption && (
+            <div style={s.photoCaption}>{photo.caption}</div>
+          )}
+
         </div>
+        )}
 
         {/* Bottom gradient overlay with name, age, stack */}
         <div style={s.overlay}>
@@ -167,6 +184,7 @@ const s = {
     cursor: 'pointer',
     userSelect: 'none',
     minHeight: 0,
+  
   },
 
   /* Photo progress dots at top */
@@ -194,7 +212,7 @@ const s = {
   /* Tap zones */
   tapLeft: {
     position: 'absolute',
-    top: '50%', left: 12,
+    top: '60%', left: 12,
     transform: 'translateY(-50%)',
     zIndex: 15,
     width: 32, height: 32,
@@ -231,7 +249,7 @@ const s = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
   },
   emojiWrap: {
     width: 140, height: 140,

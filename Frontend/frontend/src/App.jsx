@@ -1,6 +1,6 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
+
 import LoginPage   from './pages/LoginPage'
 import SignupPage  from './pages/SignupPage'
 import LandingPage from './pages/LandingPage'
@@ -9,8 +9,11 @@ import TechStackPage from './pages/TechStackPage'
 import Discover from './pages/Discover'
 import PhotoSelectionPage from './pages/PhotoSelectionPage'
 
-// Placeholder stubs — build these next
 
+import { AuthProvider }    from './context/AuthContext'
+
+// Placeholder stubs — build these next
+import { ProtectedRoute,GuestRoute } from './components/routing/ProtectedRoute'
 
 
 export default function App() {
@@ -18,15 +21,23 @@ export default function App() {
      <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/"         element={<Navigate to="/landing" replace />} />
-          <Route path="/landing"  element={<LandingPage />} />
-          <Route path="/login"    element={<LoginPage />} />
-          <Route path="/signup"   element={<SignupPage />} />
-          <Route path="/otp"      element={<OTPPage />} />
-          <Route path="/stack"    element={<TechStackPage />} />
-          <Route path='/discover' element={<Discover/>}/>
-          <Route path="/photos" element={<PhotoSelectionPage />} />
-         
+          <Route element={<GuestRoute />}>
+            <Route path="/login"   element={<LoginPage />} />
+            <Route path="/signup"  element={<SignupPage />} />
+            <Route path="/otp"     element={<OTPPage />} />
+            <Route path="/stack"   element={<TechStackPage />} />
+            <Route path="/photos"  element={<PhotoSelectionPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/discover" element={<Discover />} />
+            {/* add more protected pages here */}
+          </Route>
+
+          <Route path="*" element={<Navigate to="/login" replace />} />
+
+
+
         </Routes>
       </BrowserRouter>
     </AuthProvider>

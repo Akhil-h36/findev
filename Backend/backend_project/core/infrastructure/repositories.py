@@ -12,16 +12,24 @@ class DeveloperRepository:
         return DeveloperEntity(
             id=model.id,
             username=model.user.username,
-            tech_stack=model.tech_stack_raw.split(','),
+            tech_stack=model.tech_stack_data,
             is_online=model.is_online,
             bio=model.bio
         )
 
 
-    def get_by_phone(self,phone_number:str)->DeveloperEntity:
-        model=DeveloperModel.objects.get(phone_number=phone_number)
-        return self._to_entity(model)   
-
+    def get_by_phone(self, phone_number: str) -> DeveloperEntity:
+        model = DeveloperModel.objects.filter(phone_number=phone_number).first()
+        if model is None:
+            # Try without leading +
+            model = DeveloperModel.objects.filter(
+                phone_number=phone_number.lstrip('+')
+            ).first()
+        if model is None:
+            raise DeveloperModel.DoesNotExist(
+                f"No developer with phone {phone_number}"
+            )
+        return self._to_entity(model)
 
     def get_discovery_list(self,current_user_id):
         user_profile=DeveloperModel.objects.get(id=current_user_id)
@@ -35,14 +43,22 @@ class DeveloperRepository:
 #  write operation -creation of profile
 
 
-    def create_user_with_profile(self, username, password, phone_number, github_url, years_experience, tech_stack_data):
+    def create_user_with_profile(self, username, password, phone_number,
+                              github_url, years_experience, tech_stack_data):
+    # Clean up any unverified account with this phone before creating new one
+        existing = DeveloperModel.objects.filter(
+            phone_number=phone_number, is_phone_verified=False
+        ).first()
+        if existing:
+            existing.user.delete()  # cascades to DeveloperModel
+
         user = User.objects.create_user(username=username, password=password)
         profile = DeveloperModel.objects.create(
             user=user,
             phone_number=phone_number,
             github_url=github_url,
             years_experience=years_experience,
-            tech_stack_data=tech_stack_data, # Directly saving the JSON from the UI
+            tech_stack_data=tech_stack_data,
             is_phone_verified=False,
         )
         return self._to_entity(profile)

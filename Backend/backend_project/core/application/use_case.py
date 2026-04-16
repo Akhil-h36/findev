@@ -35,30 +35,36 @@ class RegisterUserUseCase:
         }
 
 # verifying otp
-
 class VerifyOTPUseCase:
     def __init__(self, repository: 'DeveloperRepository',
                  otp_service: 'WhatsAppOTPService'):
         self.repository = repository
         self.otp_service = otp_service
-    
 
-    def execute(self,phone_number:str,code:str)->dict:
-        approved=self.otp_service.verify_otp(phone_number,code)
+    def execute(self, phone_number: str, code: str, signup_data: dict = {}) -> dict:
+        approved = self.otp_service.verify_otp(phone_number, code)
 
         if not approved:
-            return {"status":"error" ,"message":"invalid or expired otp"}
-        
+            return {"status": "error", "message": "Invalid or expired OTP."}
+
+        # Create user only after OTP is confirmed
+        entity = self.repository.create_user_with_profile(
+            username=signup_data['username'],
+            password=signup_data['password'],
+            phone_number=phone_number,
+            github_url=signup_data.get('github_url', ''),
+            years_experience=signup_data.get('years_experience', 0),
+            tech_stack_data=signup_data.get('tech_stack_data', {}),
+        )
+
+        # Mark phone verified immediately since OTP just passed
         self.repository.mark_phone_verified(phone_number)
-        self.repository.mark_otp_used(phone_number)
 
-
-        developer=self.repository.get_by_phone(phone_number)
-        tokens=_generate_tokens_for_user_id(developer.id)
+        tokens = _generate_tokens_for_user_id(entity.id)
 
         return {
             "status": "verified",
-            "message": "Phone verified successfully.",
+            "message": "Phone verified. Account created.",
             **tokens,
         }
 
@@ -91,6 +97,12 @@ class LoginUseCase:
 
         if user is None:
             return {"status":"error","message":"invalid credentials"}
+        
+        if not hasattr(user, 'profile'):
+            return {
+                "status": "error", 
+                "message": "This account does not have a developer profile. Please register again."
+            }
         
         if not user.profile.is_phone_verified:
             return {"status": "error", "message": "Phone not verified..."}

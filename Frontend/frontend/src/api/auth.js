@@ -50,11 +50,28 @@ export const login = (data) => api.post('/auth/login/', data)
 export const updateTechStack = (data) => api.patch('/auth/update-tech-stack/', data)
 
 
+
+
+// Get / update own profile
+export const getMyProfile = ()     => api.get('/auth/me/')
+export const updateMyProfile = (data) => api.patch('/auth/me/', data)
+
+
+
 export const uploadPhotos = (formData) => api.post('/auth/upload-photos/', formData, {
   headers: {
     'Content-Type': 'multipart/form-data',
   },
 });
+
+
+
+export const getDiscovery = ()              => api.get('/discover/')
+
+export const swipe = (targetId, action)     => api.post(`/swipe/${targetId}/`, { action })
+ 
+
+ 
 
 
 

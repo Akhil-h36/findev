@@ -23,9 +23,10 @@ urlpatterns=[
     path('auth/login/',       LoginView.as_view(),     name='login'),
 
     # app
-    path('swipe/<int:target_id>',SwipeView.as_view(),name='swipe'),
+    path('swipe/<int:target_id>/',SwipeView.as_view(),name='swipe'),
     path('discover/',DiscoveryView.as_view(), name='discovery'),
     path('auth/update-tech-stack/', UpdateTechStackView.as_view(), name='update-tech-stack'),
+    path('auth/me/', MyProfileView.as_view(), name='my-profile')
 ]
 
 

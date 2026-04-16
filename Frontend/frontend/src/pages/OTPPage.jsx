@@ -3,57 +3,52 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Background from '../components/layout/Background'
 import Navbar from '../components/layout/Navbar'
-import { verifyOTP, resendOTP, requestOTP  } from '../api/auth'
+import { verifyOTP, resendOTP } from '../api/auth'
+// ↑ FIX: removed requestOTP import — SignupPage already sent the OTP before
+//   navigating here, so we do NOT re-send on mount. That was causing a double-fire.
 
 export default function OTPPage() {
   const navigate = useNavigate()
 
   const [digits, setDigits]           = useState(['', '', '', '', '', ''])
-  const [status, setStatus]           = useState('idle')
-  const [resendState, setResendState] = useState('idle')
+  const [status, setStatus]           = useState('idle')   // idle | loading | success | error
+  const [resendState, setResendState] = useState('idle')   // idle | sent | cooldown
   const [cooldown, setCooldown]       = useState(0)
   const [errMsg, setErrMsg]           = useState('')
   const inputRefs = useRef([])
-  
 
+  // Read the data that SignupPage stored before navigating here
   const signupData = (() => {
     try { return JSON.parse(sessionStorage.getItem('signup_data') || '{}') } catch { return {} }
   })()
 
+  // Redirect back to /signup if somehow we landed here without signup data
+  useEffect(() => {
+    if (!signupData.phone_number) {
+      navigate('/signup')
+    }
+  }, [])
+
+  // Masked phone display  e.g. +91 ****234
   const phoneDisplay = signupData.phone_number
     ? signupData.phone_number.replace(/(\+\d{2})(\d+)(\d{3})/, '$1 ****$3')
     : '+91 *** *** ****'
 
+  // Cooldown countdown ticker
   useEffect(() => {
     if (cooldown <= 0) return
     const t = setTimeout(() => setCooldown((c) => c - 1), 1000)
     return () => clearTimeout(t)
   }, [cooldown])
 
-
-
-
-  const otpSent = useRef(false)
-
-    useEffect(() => {
-    if (otpSent.current) return   // prevent double-fire in React StrictMode
-    otpSent.current = true
-
-    const data = JSON.parse(sessionStorage.getItem('signup_data') || '{}')
-    if (data.phone_number) {
-        requestOTP({ phone_number: data.phone_number }).catch(() => {
-        setErrMsg('Failed to send OTP. Go back and try again.')
-        })
-    } else {
-        navigate('/signup')
-    }
-    }, [])
-
-
-
+  // Auto-submit once all 6 digits are filled
   useEffect(() => {
-    if (digits.every((d) => d !== '')) setTimeout(() => handleVerify(), 300)
+    if (digits.every((d) => d !== '') && status === 'idle') {
+      setTimeout(() => handleVerify(), 300)
+    }
   }, [digits])
+
+  // ── Input handlers ───────────────────────────────────────────────────────────
 
   const handleInput = (idx, val) => {
     if (!/^\d?$/.test(val)) return
@@ -73,42 +68,64 @@ export default function OTPPage() {
     inputRefs.current[Math.min(pasted.length, 5)]?.focus()
   }
 
+  // ── Verify ───────────────────────────────────────────────────────────────────
+
   const handleVerify = async () => {
     const code = digits.join('')
     if (code.length < 6) { setErrMsg('Please enter all 6 digits.'); return }
     if (status === 'loading') return
     setStatus('loading'); setErrMsg('')
 
-        try {
-            const { data: res } = await verifyOTP({
-            phone_number: signupData.phone_number,
-            code,
-            signup_data: signupData,   // backend creates user here, after OTP confirmed
-            })
+    try {
+      const { data: res } = await verifyOTP({
+        phone_number: signupData.phone_number,
+        code,
+        signup_data: signupData,   // backend creates the user here, after OTP confirmed
+      })
 
-            if (res.status === 'verified') {
-            localStorage.setItem('access_token', res.access)
-            setStatus('success')
-            setTimeout(() => navigate('/stack'), 900)
-            } else {
-            setStatus('error')
-            setErrMsg(res.message || 'Invalid code.')
-            }
-        } catch (err) {
-            setStatus('error')
-            setErrMsg(err.response?.data?.error || err.response?.data?.detail || 'Verification failed.')
-        }
+      if (res.status === 'verified') {
+        localStorage.setItem('access_token', res.access)
+        localStorage.setItem('refresh_token', res.refresh)
+        setStatus('success')
+        setTimeout(() => navigate('/stack'), 900)
+      } else {
+        setStatus('error')
+        setErrMsg(res.message || 'Invalid code.')
+        // Reset digits so user can try again
+        setDigits(['', '', '', '', '', ''])
+        setTimeout(() => inputRefs.current[0]?.focus(), 100)
+      }
+    } catch (err) {
+      setStatus('error')
+      setErrMsg(err.response?.data?.error || err.response?.data?.detail || 'Verification failed.')
+      setDigits(['', '', '', '', '', ''])
+      setTimeout(() => inputRefs.current[0]?.focus(), 100)
     }
+  }
+
+  // ── Resend ───────────────────────────────────────────────────────────────────
 
   const handleResend = async () => {
-    if (cooldown > 0) return
+    if (cooldown > 0 || resendState === 'sent') return
     setResendState('sent'); setErrMsg('')
-    try { await resendOTP({ phone_number: signupData.phone_number }) } catch {}
+    try {
+      await resendOTP({ phone_number: signupData.phone_number })
+    } catch {
+      // swallow — Twilio rate limit errors shown via cooldown UX
+    }
+    // Start 60s cooldown
     setTimeout(() => { setResendState('cooldown'); setCooldown(60) }, 400)
     setTimeout(() => setResendState('idle'), 60400)
   }
 
-  const btnLabel = { idle: 'Verify & Continue', loading: 'verifying...', success: '✓ verified!', error: 'Verify & Continue' }[status]
+  // ── Render ───────────────────────────────────────────────────────────────────
+
+  const btnLabel = {
+    idle:    'Verify & Continue',
+    loading: 'verifying...',
+    success: '✓ verified!',
+    error:   'Try Again',
+  }[status]
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 pt-24 pb-16 relative animate-page-enter" style={{ background: '#ffffff' }}>
@@ -141,7 +158,7 @@ export default function OTPPage() {
           </span>
         </p>
 
-        {/* OTP Boxes */}
+        {/* OTP digit boxes */}
         <div className="flex gap-3 justify-center mb-9" onPaste={handlePaste}>
           {digits.map((d, i) => (
             <input
@@ -156,12 +173,16 @@ export default function OTPPage() {
                 width: 56, height: 68,
                 background: d ? '#f5f3ff' : 'none',
                 border: 'none',
-                borderBottom: d ? '2px solid #a78bfa' : status === 'error' ? '2px solid #fca5a5' : '2px solid rgba(139,92,246,0.22)',
+                borderBottom: d
+                  ? '2px solid #a78bfa'
+                  : status === 'error'
+                    ? '2px solid #fca5a5'
+                    : '2px solid rgba(139,92,246,0.22)',
                 borderRadius: d ? '8px 8px 0 0' : '0',
                 color: '#1e1b4b', caretColor: '#8b5cf6',
               }}
               onFocus={(e) => { e.target.style.borderBottomColor = '#8b5cf6' }}
-              onBlur={(e) => { e.target.style.borderBottomColor = d ? '#a78bfa' : 'rgba(139,92,246,0.22)' }}
+              onBlur={(e)  => { e.target.style.borderBottomColor = d ? '#a78bfa' : 'rgba(139,92,246,0.22)' }}
             />
           ))}
         </div>
@@ -172,9 +193,12 @@ export default function OTPPage() {
 
         <button
           onClick={handleVerify}
-          disabled={status === 'loading'}
+          disabled={status === 'loading' || status === 'success'}
           className="w-full py-4 rounded-2xl font-sans text-[15px] font-medium text-white border-0 cursor-pointer relative overflow-hidden transition-all"
-          style={{ background: status === 'success' ? '#16a34a' : status === 'loading' ? '#7c3aed' : '#1e1b4b' }}
+          style={{
+            background: status === 'success' ? '#16a34a' : status === 'loading' ? '#7c3aed' : '#1e1b4b',
+            opacity: status === 'loading' ? 0.85 : 1,
+          }}
           onMouseEnter={(e) => { if (status === 'idle' || status === 'error') { e.currentTarget.style.background = '#6d28d9'; e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 24px rgba(109,40,217,0.24)' } }}
           onMouseLeave={(e) => { if (status === 'idle' || status === 'error') { e.currentTarget.style.background = '#1e1b4b'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' } }}
         >
@@ -187,7 +211,10 @@ export default function OTPPage() {
           {cooldown > 0 ? (
             <span className="font-mono text-text-ghost text-[12px]">resend in {cooldown}s</span>
           ) : (
-            <span onClick={handleResend} className="text-lavender-600 cursor-pointer font-medium hover:text-lavender-700 transition-colors">
+            <span
+              onClick={handleResend}
+              className="text-lavender-600 cursor-pointer font-medium hover:text-lavender-700 transition-colors"
+            >
               {resendState === 'sent' ? 'sent! ✓' : 'Resend code'}
             </span>
           )}

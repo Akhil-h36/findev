@@ -6,7 +6,7 @@ class ProfileImageSerializer(serializers.ModelSerializer):
     url = serializers.ImageField(source='image', read_only=True)
     class Meta:
         model=ProfileImage
-        fields=['id','image','is_primary']
+        fields=['id','image','is_primary','url']
 
 
 class PhotoUploadSerializer(serializers.Serializer):
@@ -16,9 +16,12 @@ class PhotoUploadSerializer(serializers.Serializer):
         write_only=True
     )
 
-    def validate_uploaded_images(self, value):
-        if len(value) < 3:
-            raise serializers.ValidationError("At least 3 pictures are required.")
+    def validate_phone_number(self, value):
+        if not value.lstrip('+').isdigit():
+            raise serializers.ValidationError("Enter a valid phone number.")
+        # Always store with leading +
+        if not value.startswith('+'):
+            value = '+' + value
         return value
 
 
@@ -29,7 +32,6 @@ class DeveloperProfileSerializer(serializers.ModelSerializer):
 
     username=serializers.CharField(source='user.username',read_only=True)
     images=ProfileImageSerializer(many=True,read_only=True)
-    username=serializers.CharField(source='user.username',read_only=True)
     stack = serializers.JSONField(source='tech_stack_data', read_only=True)
 
 
@@ -78,10 +80,21 @@ class RegisterSerializer(serializers.Serializer):
 class VerifyOTPSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=15)
     code = serializers.CharField(min_length=4, max_length=8)
+    signup_data = serializers.JSONField(required=False, default=dict)
+    
+    def validate_phone_number(self, value):
+        if not value.startswith('+'):
+            value = '+' + value
+        return value
  
  
 class ResendOTPSerializer(serializers.Serializer):
     phone_number = serializers.CharField(max_length=15)
+
+    def validate_phone_number(self, value):
+        if not value.startswith('+'):
+            value = '+' + value
+        return value
  
  
 class LoginSerializer(serializers.Serializer):
