@@ -71,7 +71,7 @@ export const getDiscovery = ()              => api.get('/discover/')
 export const swipe = (targetId, action)     => api.post(`/swipe/${targetId}/`, { action })
  
 
- 
+ export const getMatchesAndLikes = () => api.get('/matches/')
 
 
 

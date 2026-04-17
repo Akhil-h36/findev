@@ -4,7 +4,7 @@ from core.infrastructure.whatsapp_otp_service import WhatsAppOTPService
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 
-# user rejistration
+# user registration
 
 class RegisterUserUseCase:
     def __init__(self,repository:'DeveloperRepository',otp_service: 'WhatsAppOTPService'):
@@ -112,10 +112,11 @@ class LoginUseCase:
 
 
 
-# the swipe right  logic
+# the swipe right logic
 class SwipeRightUseCase:
     def __init__(self,repository:'DeveloperRepository'):
         self.repository=repository
+
     def execute(self,swiper_id:int,target_id:int):
         swiper=self.repository.get_by_id(swiper_id)
         target=self.repository.get_by_id(target_id)
@@ -129,7 +130,6 @@ class SwipeRightUseCase:
 class SwipeleftUseCase:
 
     def __init__(self,repository:'DeveloperRepository'):
-
         self.repository=repository
 
     def execute(self,swiper_id:int,target_id:int):
@@ -142,7 +142,26 @@ class GetDiscoveryProfilesUseCase:
     
     def execute(self,current_user_id:int):
         return self.repository.get_discovery_list(current_user_id)
-    
+
+
+class GetMatchesUseCase:
+    # FIX: was `repostitory` (typo) and `self.repository = self.repository` (self-reference crash)
+    def __init__(self, repository: 'DeveloperRepository'):
+        self.repository = repository
+
+    def execute(self, profile_id: int):
+        return self.repository.get_matches(profile_id)
+
+
+class GetPendingLikesUseCase:
+    # FIX: was `self.repository = self.repository` (self-reference crash)
+    def __init__(self, repository: 'DeveloperRepository'):
+        self.repository = repository
+
+    def execute(self, profile_id: int):
+        return self.repository.get_pending_likes(profile_id)
+        
+
 
     
 #  Internal helpers                                                    #
@@ -161,4 +180,3 @@ def _generate_tokens_for_django_user(user) -> dict:
         "refresh": str(refresh),
         "access": str(refresh.access_token),
     }
- 

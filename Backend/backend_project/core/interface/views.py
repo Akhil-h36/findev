@@ -13,6 +13,8 @@ from core.application.use_case import (
     SwipeRightUseCase,
     SwipeleftUseCase,
     GetDiscoveryProfilesUseCase,
+    GetMatchesUseCase,
+    GetPendingLikesUseCase
 )
 
 from core.infrastructure.models import ProfileImage
@@ -233,3 +235,26 @@ class MyProfileView(RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user.profile
+
+
+class MathesAndLikesViews(APIView):
+    permission_classes=[IsAuthenticated]
+
+    def get(self,request):
+        repo=DeveloperRepository()
+        profile_id = request.user.profile.id
+
+        matches=GetMatchesUseCase(repo).execute(profile_id)
+        pending=GetPendingLikesUseCase(repo).execute(profile_id)
+
+        ctx = {'request': request}
+
+        # return Response({"matches": DeveloperProfileSerializer(matches, many=True).data,
+        #     "pending_likes": DeveloperProfileSerializer(pending, many=True).data})
+
+        return Response({
+            "matches":       DeveloperProfileSerializer(matches, many=True, context=ctx).data,
+            "pending_likes": DeveloperProfileSerializer(pending, many=True, context=ctx).data,
+        })
+
+

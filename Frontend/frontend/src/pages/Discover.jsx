@@ -19,11 +19,20 @@ const GRAD = [
 ]
 const EMOJIS = ['🧑‍💻','👩‍💻','🦀','🌸','☁️','🤖','🎨','🏔️']
 
+const BACKEND = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/api\/?$/, '')
+
+function resolveUrl(url) {
+  if (!url) return null
+  if (url.startsWith('http://') || url.startsWith('https://')) return url
+  if (!url.startsWith('/')) url = '/' + url
+  return BACKEND + url
+}
+
 function adaptProfile(raw, index = 0) {
   let photos = []
   if (raw.images && raw.images.length > 0) {
     photos = raw.images.map((img) => ({
-      url:        img.url || null,
+      url:        resolveUrl(img.url || img.image) || null,
       is_primary: img.is_primary,
       bg:         null,
       emoji:      null,
@@ -39,10 +48,11 @@ function adaptProfile(raw, index = 0) {
   }
 
   let stackArr = []
-  if (Array.isArray(raw.stack)) {
-    stackArr = raw.stack
-  } else if (raw.stack && typeof raw.stack === 'object') {
-    stackArr = Object.keys(raw.stack).filter(k => raw.stack[k])
+  const rawStack = raw.tech_stack_data ?? raw.stack
+  if (Array.isArray(rawStack)) {
+    stackArr = rawStack
+  } else if (rawStack && typeof rawStack === 'object') {
+    stackArr = Object.keys(rawStack).filter(k => rawStack[k])
   }
 
   const initials = raw.username
@@ -74,24 +84,63 @@ function adaptProfile(raw, index = 0) {
 // ── Skeletons / empty states ─────────────────────────────────────────
 function LoadingSkeleton() {
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100vh', gap:16 }}>
-      <div style={{ width:300, height:470, borderRadius:22, background:'linear-gradient(135deg,#ede8ff,#c4b5fd)', opacity:0.5, animation:'pulse 1.5s ease-in-out infinite' }} />
-      <p style={{ fontFamily:'var(--mono)', fontSize:12, color:'#8b7eb8' }}>loading profiles...</p>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, gap:16 }}>
+      <div style={{ width:300, height:480, borderRadius:28, background:'linear-gradient(135deg,#ede8ff,#c4b5fd)', opacity:0.5, animation:'pulse 1.5s ease-in-out infinite' }} />
+      <p style={{ fontFamily:'var(--mono)', fontSize:12, color:'#a78bfa', letterSpacing:'1px' }}>loading profiles...</p>
     </div>
   )
 }
 
 function EmptyState() {
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100vh', gap:12 }}>
-      <div style={{ fontSize:48 }}>💜</div>
-      <p style={{ fontFamily:'var(--sans)', fontSize:16, fontWeight:600, color:'#2e1065' }}>You've seen everyone!</p>
-      <p style={{ fontFamily:'var(--mono)', fontSize:12, color:'#8b7eb8' }}>Check back later for new devs</p>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, gap:12 }}>
+      <div style={{ fontSize:52, filter:'drop-shadow(0 6px 16px rgba(139,92,246,0.3))' }}>💜</div>
+      <p style={{ fontFamily:'var(--sans)', fontSize:17, fontWeight:700, color:'#2e1065', letterSpacing:'-0.3px' }}>You've seen everyone!</p>
+      <p style={{ fontFamily:'var(--mono)', fontSize:11, color:'#b0a8cc', letterSpacing:'0.5px' }}>Check back later for new devs</p>
     </div>
   )
 }
 
-// ── Logout button (temporary — remove once route protection is in place) ──
+// ── Liked-profile preview banner ─────────────────────────────────────
+function LikedByBanner({ profile, onBack }) {
+  return (
+    <div style={{
+      display:      'flex',
+      alignItems:   'center',
+      gap:          10,
+      padding:      '12px 24px',
+      background:   'linear-gradient(90deg,#f5f0ff,#ede8ff,#f5f0ff)',
+      borderBottom: '1px solid #ddd6fe',
+      fontFamily:   'var(--mono)',
+      fontSize:     12,
+      color:        '#5b21b6',
+      flexShrink:   0,
+    }}>
+      <span style={{ fontSize: 16, filter: 'drop-shadow(0 2px 6px rgba(139,92,246,0.4))' }}>💜</span>
+      <span><strong>{profile.name}</strong> liked your profile — like back to match!</span>
+      <button
+        onClick={onBack}
+        style={{
+          marginLeft:   'auto',
+          background:   'linear-gradient(135deg, #f5f0ff, #ede8ff)',
+          border:       '1px solid #c4b5fd',
+          borderRadius: 10,
+          padding:      '4px 12px',
+          fontSize:     11,
+          color:        '#7c3aed',
+          cursor:       'pointer',
+          fontFamily:   'var(--mono)',
+          fontWeight:   600,
+          transition:   'all 0.15s',
+        }}
+      >
+        ← back
+      </button>
+    </div>
+  )
+}
+
+// ── Logout button ──
 function LogoutButton({ onLogout }) {
   const [hovered, setHovered] = useState(false)
   return (
@@ -107,21 +156,21 @@ function LogoutButton({ onLogout }) {
         display:      'flex',
         alignItems:   'center',
         gap:          7,
-        padding:      '8px 16px',
+        padding:      '7px 15px',
         borderRadius: 12,
         border:       '1.5px solid rgba(139,92,246,0.22)',
-        background:   hovered ? '#fef2f2' : 'white',
-        color:        hovered ? '#dc2626' : '#8b84b8',
+        background:   hovered ? '#fef2f2' : 'rgba(255,255,255,0.95)',
+        color:        hovered ? '#dc2626' : '#9d8ec0',
         fontFamily:   'var(--mono)',
-        fontSize:     12,
+        fontSize:     11.5,
         fontWeight:   500,
         cursor:       'pointer',
         transition:   'all 0.15s ease',
-        boxShadow:    '0 2px 12px rgba(0,0,0,0.06)',
+        boxShadow:    hovered ? '0 4px 16px rgba(220,38,38,0.15)' : '0 2px 12px rgba(139,92,246,0.08)',
+        backdropFilter: 'blur(8px)',
       }}
     >
-      {/* power icon */}
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
         <line x1="12" y1="2" x2="12" y2="12"/>
       </svg>
@@ -133,18 +182,36 @@ function LogoutButton({ onLogout }) {
 // ── Main component ───────────────────────────────────────────────────
 export default function Discover() {
   const navigate       = useNavigate()
-  const { logout }     = useAuth()   // ← from AuthContext
+  const { logout }     = useAuth()
 
-  const [profiles,   setProfiles]  = useState([])
-  const [idx,        setIdx]       = useState(0)
-  const [loading,    setLoading]   = useState(true)
-  const [error,      setError]     = useState(null)
-  const [matched,    setMatched]   = useState([])
-  const [sideTab,    setSideTab]   = useState('liked')
-  const [chat,       setChat]      = useState(null)
-  const [matchPopup, setMP]        = useState(null)
-  const [toast,      setToast]     = useState(null)
-  const [flyClass,   setFly]       = useState('')
+  const [profiles,     setProfiles]     = useState([])
+  const [idx,          setIdx]          = useState(0)
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState(null)
+  const [sideTab,      setSideTab]      = useState('liked')
+  const [chat,         setChat]         = useState(null)
+  const [matchPopup,   setMP]           = useState(null)
+  const [toast,        setToast]        = useState(null)
+  const [flyClass,     setFly]          = useState('')
+  const [matches,      setMatches]      = useState([])
+  const [pendingLikes, setPendingLikes] = useState([])
+  const [likedPreview, setLikedPreview] = useState(null)
+
+  const refreshMatches = useCallback(async () => {
+    try {
+      const res = await api.get('/matches/')
+      setMatches(res.data.matches.map((p, i) => adaptProfile(p, i)))
+      setPendingLikes(res.data.pending_likes.map((p, i) => adaptProfile(p, i)))
+    } catch (err) {
+      console.error('Error refreshing matches', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    refreshMatches()
+    const interval = setInterval(refreshMatches, 5000)
+    return () => clearInterval(interval)
+  }, [refreshMatches])
 
   useEffect(() => {
     setLoading(true)
@@ -156,10 +223,8 @@ export default function Discover() {
       })
       .catch(err => {
         console.error('Discovery fetch failed:', err)
-        // If 401 the token is stale — send back to login
         if (err.response?.status === 401) {
-          logout()
-          navigate('/login')
+          logout(); navigate('/login')
         } else {
           setError('Could not load profiles. Please try again.')
         }
@@ -167,10 +232,8 @@ export default function Discover() {
       .finally(() => setLoading(false))
   }, [])
 
-  // ── Logout handler ────────────────────────────────────────────────
   const handleLogout = useCallback(() => {
-    logout()           // clears tokens from localStorage / AuthContext
-    navigate('/login')
+    logout(); navigate('/login')
   }, [logout, navigate])
 
   const showToast = useCallback((msg) => {
@@ -178,40 +241,76 @@ export default function Discover() {
     setTimeout(() => setToast(null), 2800)
   }, [])
 
-  const nextProfile = useCallback(() => {
-    setFly('')
-    setIdx(i => i + 1)
+  const handleOpenLikedProfile = useCallback((user) => {
+    setChat(null)
+    setLikedPreview(user)
+    setSideTab('liked')
   }, [])
 
-  const handleLike = useCallback(() => {
-    if (!profiles[idx]) return
-    setFly('fly-right')
-    const p = profiles[idx]
-    api.post(`/swipe/${p.id}/`, { action: 'like' })
+  const handleBackToDiscover = useCallback(() => {
+    setLikedPreview(null)
+  }, [])
+
+  const clearFly = useCallback(() => {
+    setTimeout(() => setFly(''), 50)
+  }, [])
+
+  const doSwipe = useCallback((targetProfile, action) => {
+    api.post(`/swipe/${targetProfile.id}/`, { action })
       .then(res => {
-        if (res.data.status === 'match') {
-          setFly('')
-          setMatched(prev => prev.find(m => m.id === p.id) ? prev : [...prev, p])
-          setMP(p)
+        if (action === 'like' && res.data.status === 'match') {
+          setMatches(prev => {
+            const alreadyThere = prev.some(m => m.id === targetProfile.id)
+            return alreadyThere ? prev : [...prev, targetProfile]
+          })
+          setPendingLikes(prev => prev.filter(u => u.id !== targetProfile.id))
+          setMP(targetProfile)
+        } else if (action === 'like') {
+          showToast('💜 Liked ' + targetProfile.name)
         } else {
-          showToast('💜 Liked ' + p.name)
-          setTimeout(nextProfile, 600)
+          showToast('👋 Passed on ' + targetProfile.name)
+          setPendingLikes(prev => prev.filter(u => u.id !== targetProfile.id))
+        }
+
+        setProfiles(prev => prev.filter(p => p.id !== targetProfile.id))
+
+        if (likedPreview && likedPreview.id === targetProfile.id) {
+          setPendingLikes(prev => prev.filter(u => u.id !== targetProfile.id))
+          setLikedPreview(null)
+        } else {
+          setIdx(prev => prev + 1)
+          clearFly()
         }
       })
       .catch(() => {
-        showToast('💜 Liked ' + p.name)
-        setTimeout(nextProfile, 600)
+        if (action === 'like') showToast('💜 Liked ' + targetProfile.name)
+        else showToast('👋 Passed on ' + targetProfile.name)
+
+        setProfiles(prev => prev.filter(p => p.id !== targetProfile.id))
+        setPendingLikes(prev => prev.filter(u => u.id !== targetProfile.id))
+
+        if (likedPreview && likedPreview.id === targetProfile.id) {
+          setLikedPreview(null)
+        } else {
+          setIdx(prev => prev + 1)
+          clearFly()
+        }
       })
-  }, [idx, profiles, nextProfile, showToast])
+  }, [likedPreview, clearFly, showToast])
+
+  const handleLike = useCallback(() => {
+    const target = likedPreview || profiles[0]
+    if (!target) return
+    if (!likedPreview) setFly('fly-right')
+    doSwipe(target, 'like')
+  }, [likedPreview, profiles, doSwipe])
 
   const handleReject = useCallback(() => {
-    if (!profiles[idx]) return
-    setFly('fly-left')
-    const p = profiles[idx]
-    api.post(`/swipe/${p.id}/`, { action: 'reject' }).catch(() => {})
-    showToast('👋 Passed on ' + p.name)
-    setTimeout(nextProfile, 600)
-  }, [idx, profiles, nextProfile, showToast])
+    const target = likedPreview || profiles[0]
+    if (!target) return
+    if (!likedPreview) setFly('fly-left')
+    doSwipe(target, 'reject')
+  }, [likedPreview, profiles, doSwipe])
 
   const handleSuperLike = useCallback(() => {
     showToast('⭐ Super liked!')
@@ -230,25 +329,32 @@ export default function Discover() {
 
   const onMatchChat = () => {
     const p = matchPopup
-    setMP(null); nextProfile()
+    setMP(null)
     setChat({ ...p, messages: p.messages || [] })
     setSideTab('matched')
   }
   const onMatchSkip = () => {
     showToast('✨ ' + matchPopup.name + ' added to Matched!')
-    setMP(null); nextProfile()
+    setMP(null)
   }
 
-  const profile = profiles[idx]
+  const handleOpenMatchChat = useCallback((user) => {
+    setLikedPreview(null)
+    setChat({ ...user, messages: user.messages || [] })
+  }, [])
 
-  // ── Shared sidebar props ──────────────────────────────────────────
+  const discoveryProfile = profiles[0]
+  const displayProfile   = likedPreview || discoveryProfile
+
   const sidebarProps = {
-    sideTab, setSideTab,
-    likedUsers: [],
-    matched,
-    chatProfile: chat,
-    onOpenChat:  setChat,
-    onCloseChat: () => setChat(null),
+    sideTab,
+    setSideTab,
+    likedUsers:         pendingLikes,
+    matched:            matches,
+    activePreviewId:    likedPreview?.id ?? null,
+    onOpenLikedProfile: handleOpenLikedProfile,
+    onOpenMatchChat:    handleOpenMatchChat,
+    onCloseChat:        () => setChat(null),
   }
 
   if (loading) return (
@@ -263,20 +369,12 @@ export default function Discover() {
     <div style={s.root}>
       <Sidebar {...sidebarProps} />
       <main style={s.main}>
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100vh', gap:12 }}>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, gap:12 }}>
           <div style={{ fontSize:40 }}>⚠️</div>
           <p style={{ fontFamily:'var(--mono)', fontSize:13, color:'#f43f5e' }}>{error}</p>
-          <button onClick={() => window.location.reload()} style={{ background:'#8b5cf6', color:'white', border:'none', borderRadius:12, padding:'10px 20px', cursor:'pointer', fontFamily:'var(--sans)' }}>Retry</button>
+          <button onClick={() => window.location.reload()} style={{ background:'linear-gradient(135deg,#8b5cf6,#6d28d9)', color:'white', border:'none', borderRadius:14, padding:'10px 24px', cursor:'pointer', fontFamily:'var(--sans)', fontWeight:600, boxShadow:'0 4px 16px rgba(139,92,246,0.4)' }}>Retry</button>
         </div>
       </main>
-      <LogoutButton onLogout={handleLogout} />
-    </div>
-  )
-
-  if (!profile) return (
-    <div style={s.root}>
-      <Sidebar {...sidebarProps} />
-      <main style={s.main}><EmptyState /></main>
       <LogoutButton onLogout={handleLogout} />
     </div>
   )
@@ -290,15 +388,34 @@ export default function Discover() {
           <ChatPanel profile={chat} onClose={() => setChat(null)} />
         ) : (
           <>
-            <ProfileCarousel
-              key={profile.id}
-              profile={profile}
-              onLike={handleLike}
-              onReject={handleReject}
-              onSuperLike={handleSuperLike}
-              flyClass={flyClass}
-            />
-            <ProfileDetail profile={profile} />
+            {likedPreview && (
+              <LikedByBanner profile={likedPreview} onBack={handleBackToDiscover} />
+            )}
+
+            {!displayProfile ? (
+              <EmptyState />
+            ) : (
+              <div style={s.contentSplit}>
+
+                {/* ── Carousel zone: tall enough to show the full card ── */}
+                <div style={s.carouselZone}>
+                  <ProfileCarousel
+                    key={`${displayProfile.id}-${idx}`}
+                    profile={displayProfile}
+                    onLike={handleLike}
+                    onReject={handleReject}
+                    onSuperLike={handleSuperLike}
+                    flyClass={likedPreview ? '' : flyClass}
+                  />
+                </div>
+
+                {/* ── Detail zone ── */}
+                <div style={s.detailZone}>
+                  <ProfileDetail profile={displayProfile} />
+                </div>
+
+              </div>
+            )}
           </>
         )}
       </main>
@@ -306,13 +423,57 @@ export default function Discover() {
       {matchPopup && <MatchOverlay other={matchPopup} onChat={onMatchChat} onSkip={onMatchSkip} />}
       {toast       && <Toast message={toast} />}
 
-      {/* Temporary logout — remove once ProtectedRoute is wired up */}
       <LogoutButton onLogout={handleLogout} />
     </div>
   )
 }
 
 const s = {
-  root: { display:'flex', height:'100vh', overflow:'hidden', fontFamily:'var(--sans)', background:'white' },
-  main: { flex:1, overflowY:'auto', background:'white', position:'relative', minWidth:0 },
+  root: {
+    display:    'flex',
+    height:     '100vh',
+    overflow:   'hidden',
+    fontFamily: 'var(--sans)',
+    background: '#fcfaff',
+  },
+  
+  main: {
+    flex:          1,
+    display:       'flex',
+    flexDirection: 'column',
+    overflowY:     'auto',
+    overflowX:     'hidden',
+    background:    'linear-gradient(180deg, #fdfcff 0%, #f9f7ff 30%, white 60%)',
+    position:      'relative',
+    minWidth:      0,
+  },
+  contentSplit: {
+    display:       'flex',
+    flexDirection: 'column',
+    width:         '100%',
+  },
+
+  // KEY FIX: height must accommodate the center card (480px) + side cards overflow
+  // + action buttons below (they sit at bottom:16 inside the 480px card, so they're inside)
+  // + dot nav (paddingBottom 12 + dotRow ~20px) + top breathing room
+  // Total: 480px card + ~80px breathing room top/bottom + 30px dots = 590px
+  carouselZone: {
+    display:        'flex',
+    flexDirection:  'column',
+    alignItems:     'center',
+    width:          '100%',
+    height:         '590px',       // ← was 580px with 50px padding eating into card
+    position:       'relative',
+    paddingTop:     '44px',        // breathing room above the 3D carousel center
+    paddingBottom:  '0px',
+    boxSizing:      'border-box',
+    overflow:       'visible',     // allow side cards to peek out
+    zIndex:         10,
+    flexShrink:     0,
+  },
+
+  detailZone: {
+    width: '100%',
+    borderTop: '1px solid #f0ecff',
+  },
 }

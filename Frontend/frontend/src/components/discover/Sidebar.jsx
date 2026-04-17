@@ -1,30 +1,61 @@
 // src/components/discover/Sidebar.jsx
-import { useState } from 'react'
+import React from 'react';
 
-export default function Sidebar({ sideTab, setSideTab, likedUsers, matched, chatProfile, onOpenChat, onCloseChat }) {
-  const newCount = likedUsers.filter(u => u.isNew).length
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg,#c4b5fd,#8b5cf6)',
+  'linear-gradient(135deg,#bfdbfe,#60a5fa)',
+  'linear-gradient(135deg,#d1fae5,#34d399)',
+  'linear-gradient(135deg,#fce7f3,#f9a8d4)',
+  'linear-gradient(135deg,#fef3c7,#fbbf24)',
+  'linear-gradient(135deg,#ffe4e6,#fb7185)',
+]
+
+function getGradient(username = '') {
+  const idx = username.charCodeAt(0) % AVATAR_GRADIENTS.length
+  return AVATAR_GRADIENTS[idx]
+}
+
+export default function Sidebar({
+  sideTab,
+  setSideTab,
+  likedUsers = [],
+  matched = [],
+  activePreviewId = null,
+  onOpenLikedProfile,
+  onOpenMatchChat,
+  onCloseChat,
+}) {
+  const pendingCount = likedUsers.length
 
   return (
     <aside style={s.sidebar}>
       {/* Header */}
       <div style={s.header}>
-        <div style={s.logo}>
-          <div style={s.logoMark}>&lt;/&gt;</div>
-          <span style={s.logoText}>DevMatch</span>
+        <div style={s.logoWrap}>
+          <div style={s.logoMark}>
+            <span style={s.logoMarkText}>&lt;/&gt;</span>
+          </div>
+          <div>
+            <div style={s.logoText}>DevMatch</div>
+            <div style={s.logoSub}>find your pair programmer</div>
+          </div>
         </div>
         <div style={s.onlinePill}>
-          <span style={s.onlineDotPulse} />
+          <span style={s.onlineDot} />
           <span style={s.onlineText}>42 online</span>
         </div>
       </div>
 
+      {/* Decorative bar */}
+      <div style={s.headerAccent} />
+
       {/* Tabs */}
       <div style={s.tabs}>
         <Tab
-          label="Liked"
-          count={newCount}
+          label="Liked You"
+          count={pendingCount}
           active={sideTab === 'liked'}
-          onClick={() => { setSideTab('liked'); onCloseChat() }}
+          onClick={() => { setSideTab('liked'); onCloseChat?.(); }}
         />
         <Tab
           label="Matched"
@@ -34,12 +65,25 @@ export default function Sidebar({ sideTab, setSideTab, likedUsers, matched, chat
         />
       </div>
 
-      {/* Content */}
+      {/* Grid content */}
       <div style={s.content}>
-        {sideTab === 'liked'
-          ? <LikedSection   users={likedUsers} onOpen={onOpenChat} />
-          : <MatchedSection matched={matched} activeChatId={chatProfile?.id} onOpen={onOpenChat} />
-        }
+        {sideTab === 'liked' ? (
+          <LikedGrid
+            users={likedUsers}
+            activePreviewId={activePreviewId}
+            onOpen={onOpenLikedProfile}
+          />
+        ) : (
+          <MatchedGrid
+            users={matched}
+            onOpen={onOpenMatchChat}
+          />
+        )}
+      </div>
+
+      {/* Footer */}
+      <div style={s.footer}>
+        <span style={s.footerText}>✦ swipe to connect ✦</span>
       </div>
     </aside>
   )
@@ -52,265 +96,415 @@ function Tab({ label, count, active, onClick }) {
       {count > 0 && (
         <span style={{ ...s.badge, ...(active ? s.badgeActive : {}) }}>{count}</span>
       )}
-      {active && <span style={s.tabUnderline} />}
     </button>
   )
 }
 
-function LikedSection({ users, onOpen }) {
-  return (
-    <>
-      <div style={s.sectionHead}>
-        <span style={s.sectionCode}>// new.likes</span>
-        <span style={s.sectionCount}>{users.filter(u => u.isNew).length}</span>
-      </div>
-      <div style={s.likedGrid}>
-        {users.map(u => <LikedCard key={u.id} user={u} onOpen={onOpen} />)}
-      </div>
-      {users.length === 0 && <EmptyHint icon="👀" text="No likes yet — keep swiping!" />}
-    </>
-  )
-}
+function AvatarCard({ user, isActive, onClick, showDot }) {
+  const initials = user.username
+    ? user.username.slice(0, 2).toUpperCase()
+    : '??'
+  const gradient = getGradient(user.username || '')
+  const stackLabel = user.stack?.slice(0, 2).join(' · ') || ''
+  const shortName = user.username
+    ? (user.username.length > 9 ? user.username.slice(0, 8) + '…' : user.username)
+    : 'Dev'
 
-function LikedCard({ user, onOpen }) {
-  const [hov, setHov] = useState(false)
-  const fp = {
-    id: user.id, name: user.name, initials: user.initials,
-    color: user.color, stack: user.stack.split(' · '),
-    messages: [
-      { from: 'them', text: `Hey! I loved your profile 👋 Your stack is amazing!` },
-      { from: 'me',   text: `Thanks! Your ${user.stack} combo looks super interesting` },
-    ],
-  }
   return (
     <div
-      style={{ ...s.likedCard, ...(hov ? s.likedCardHov : {}) }}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      onClick={() => onOpen(fp)}
+      style={{
+        ...s.card,
+        ...(isActive ? s.cardActive : {}),
+      }}
+      onClick={onClick}
     >
-      {user.isNew && <span style={s.newBadge} />}
-      <div style={{ ...s.likedAv, background: user.color }}>{user.initials[0]}</div>
-      <div style={s.likedName}>{user.name}</div>
-      <div style={s.likedStack}>{user.stack}</div>
-      <div style={s.likedCta}>View →</div>
+      {showDot && <span style={s.cardDot} />}
+
+      <div style={{ ...s.avatarOuter, ...(isActive ? s.avatarOuterActive : {}) }}>
+        <div style={{ ...s.avatar, background: gradient }}>
+          {user.photos?.[0]?.url ? (
+            <img
+              src={user.photos[0].url}
+              alt={user.username}
+              style={s.avatarImg}
+              onError={e => { e.currentTarget.style.display = 'none' }}
+            />
+          ) : (
+            <span style={s.avatarInitials}>{initials}</span>
+          )}
+          {user.is_online && <span style={s.onlineIndicator} />}
+        </div>
+      </div>
+
+      <div style={s.cardName}>{shortName}</div>
+
+      {stackLabel && (
+        <div style={s.cardStack}>{stackLabel}</div>
+      )}
     </div>
   )
 }
 
-function MatchedSection({ matched, activeChatId, onOpen }) {
-  if (!matched.length) return (
-    <EmptyHint icon="💜" text="No matches yet — start swiping to find your dev soulmate" />
-  )
-  return (
-    <>
-      <div style={s.sectionHead}>
-        <span style={s.sectionCode}>// matched.list()</span>
-        <span style={s.sectionCount}>{matched.length}</span>
+function LikedGrid({ users, activePreviewId, onOpen }) {
+  if (users.length === 0) {
+    return (
+      <div style={s.empty}>
+        <div style={s.emptyEmoji}>👀</div>
+        <div style={s.emptyTitle}>No likes yet</div>
+        <div style={s.emptyText}>Keep swiping to get noticed!</div>
+        <div style={s.emptyHint}>✦ ✦ ✦</div>
       </div>
-      <div style={s.matchList}>
-        {matched.map(p => (
-          <MatchedRow key={p.id} profile={p} isActive={activeChatId === p.id} onOpen={onOpen} />
+    )
+  }
+
+  return (
+    <div>
+      <div style={s.sectionHint}>Tap to review & like back 💜</div>
+      <div style={s.grid}>
+        {users.map(user => (
+          <AvatarCard
+            key={user.id}
+            user={user}
+            isActive={user.id === activePreviewId}
+            onClick={() => onOpen(user)}
+            showDot
+          />
         ))}
       </div>
-    </>
-  )
-}
-
-function MatchedRow({ profile, isActive, onOpen }) {
-  const [hov, setHov] = useState(false)
-  const last = profile.messages?.length
-    ? profile.messages[profile.messages.length - 1]
-    : null
-  return (
-    <div
-      style={{ ...s.matchRow, ...(hov && !isActive ? s.matchRowHov : {}), ...(isActive ? s.matchRowActive : {}) }}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      onClick={() => onOpen(profile)}
-    >
-      <div style={s.matchAvWrap}>
-        <div style={{ ...s.matchAv, background: profile.color || '#c4b5fd' }}>
-          {profile.initials?.[0]}
-        </div>
-        <span style={s.activeDot} />
-      </div>
-      <div style={s.matchInfo}>
-        <div style={s.matchName}>{profile.name}</div>
-        <div style={s.matchPreview}>
-          {last ? `${last.from === 'me' ? 'You: ' : ''}${last.text}` : "It's a match! Say hi 👋"}
-        </div>
-      </div>
-      <div style={s.matchMeta}>
-        <div style={s.matchTime}>now</div>
-        {!isActive && <div style={s.unreadBadge}>1</div>}
-      </div>
     </div>
   )
 }
 
-function EmptyHint({ icon, text }) {
+function MatchedGrid({ users, onOpen }) {
+  if (users.length === 0) {
+    return (
+      <div style={s.empty}>
+        <div style={s.emptyEmoji}>💬</div>
+        <div style={s.emptyTitle}>No matches yet</div>
+        <div style={s.emptyText}>Match with someone to start chatting</div>
+        <div style={s.emptyHint}>✦ ✦ ✦</div>
+      </div>
+    )
+  }
+
   return (
-    <div style={s.emptyWrap}>
-      <div style={s.emptyIcon}>{icon}</div>
-      <div style={s.emptyText}>{text}</div>
+    <div>
+      <div style={s.sectionHint}>Mutual matches · tap to chat 💬</div>
+      <div style={s.grid}>
+        {users.map(user => (
+          <AvatarCard
+            key={user.id}
+            user={user}
+            isActive={false}
+            onClick={() => onOpen(user)}
+            showDot={user.is_online}
+          />
+        ))}
+      </div>
     </div>
   )
 }
 
 const s = {
   sidebar: {
-    width: 280, flexShrink: 0,
-    background: '#fdfcff',
-    borderRight: '1px solid #ede9fe',
-    display: 'flex', flexDirection: 'column',
-    overflow: 'hidden',
+    width: 270,
+    background: 'linear-gradient(180deg, #fdfcff 0%, #f9f7ff 100%)',
+    borderRight: '1px solid #ede8ff',
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100vh',
+    flexShrink: 0,
+    position: 'relative',
   },
 
   header: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '15px 16px 13px',
-    borderBottom: '1px solid #ede9fe',
+    padding: '20px 18px 16px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  logoWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoMark: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    background: 'linear-gradient(135deg, #7c3aed, #5b21b6)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 4px 14px rgba(124,58,237,0.35)',
     flexShrink: 0,
   },
-  logo: { display: 'flex', alignItems: 'center', gap: 9 },
-  logoMark: {
-    width: 30, height: 30,
-    background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)',
-    borderRadius: 8,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 600, color: 'white',
+  logoMarkText: {
+    color: 'white',
+    fontWeight: 800,
+    fontSize: 13,
+    fontFamily: 'var(--mono)',
     letterSpacing: '-0.5px',
   },
   logoText: {
-    fontSize: 15, fontWeight: 700, color: '#1e0a40',
+    fontSize: 16,
+    fontWeight: 700,
+    color: '#1e1b4b',
     letterSpacing: '-0.4px',
+    lineHeight: 1.1,
+  },
+  logoSub: {
+    fontSize: 9,
+    color: '#b0a8cc',
+    fontFamily: 'var(--mono)',
+    letterSpacing: '0.2px',
+    marginTop: 1,
   },
   onlinePill: {
-    display: 'flex', alignItems: 'center', gap: 5,
-    background: '#f0fdf4', border: '1px solid #bbf7d0',
-    padding: '3px 9px', borderRadius: 20,
+    background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
+    border: '1px solid #bbf7d0',
+    padding: '4px 9px',
+    borderRadius: 20,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 5,
+    boxShadow: '0 2px 8px rgba(34,197,94,0.12)',
   },
-  onlineDotPulse: {
-    width: 6, height: 6, borderRadius: '50%',
-    background: '#22c55e', display: 'inline-block',
-    animation: 'pulse 2s infinite',
+  onlineDot: {
+    width: 6,
+    height: 6,
+    background: '#22c55e',
+    borderRadius: '50%',
+    display: 'inline-block',
+    boxShadow: '0 0 6px rgba(34,197,94,0.5)',
   },
-  onlineText: { fontFamily: 'var(--mono)', fontSize: 10, color: '#16a34a' },
+  onlineText: {
+    fontSize: 10,
+    color: '#15803d',
+    fontWeight: 600,
+    fontFamily: 'var(--mono)',
+  },
+
+  headerAccent: {
+    height: 2,
+    background: 'linear-gradient(90deg, transparent, #c4b5fd, #8b5cf6, #c4b5fd, transparent)',
+    opacity: 0.5,
+    flexShrink: 0,
+  },
 
   tabs: {
     display: 'flex',
-    borderBottom: '1px solid #ede9fe',
-    padding: '0 14px', flexShrink: 0,
+    padding: '0 16px',
+    borderBottom: '1px solid #ede8ff',
+    gap: 4,
+    background: 'rgba(250,248,255,0.8)',
   },
   tab: {
-    flex: 1, padding: '11px 0',
-    fontSize: 13, fontWeight: 600,
-    color: '#b0a8cc', cursor: 'pointer',
-    textAlign: 'center', position: 'relative',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-    background: 'none', border: 'none',
-    fontFamily: 'var(--sans)', transition: 'color 0.18s',
+    padding: '12px 4px',
+    border: 'none',
+    background: 'none',
+    fontSize: 12.5,
+    fontWeight: 600,
+    color: '#b0a8cc',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    marginRight: 12,
+    borderBottom: '2px solid transparent',
+    transition: 'color 0.15s, border-color 0.15s',
+    fontFamily: 'var(--sans)',
+    letterSpacing: '-0.1px',
   },
-  tabActive: { color: '#7c3aed' },
-  tabUnderline: {
-    position: 'absolute', bottom: 0, left: '20%', right: '20%',
-    height: 2.5, background: '#8b5cf6',
-    borderRadius: '3px 3px 0 0', display: 'block',
+  tabActive: {
+    color: '#7c3aed',
+    borderBottom: '2px solid #7c3aed',
   },
   badge: {
-    fontSize: 10, fontWeight: 700,
-    minWidth: 17, height: 17, borderRadius: 10,
-    display: 'inline-flex', alignItems: 'center',
-    justifyContent: 'center', padding: '0 4px',
-    background: '#ede8ff', color: '#6d28d9',
-    transition: 'all 0.18s',
+    background: '#f0e8ff',
+    color: '#8b5cf6',
+    fontSize: 10,
+    fontWeight: 700,
+    padding: '1px 7px',
+    borderRadius: 10,
+    fontFamily: 'var(--mono)',
+    transition: 'all 0.2s',
   },
-  badgeActive: { background: '#8b5cf6', color: 'white' },
-
-  content: { flex: 1, overflowY: 'auto', padding: '14px 12px 10px' },
-
-  sectionHead: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    marginBottom: 11, marginTop: 2,
-  },
-  sectionCode: { fontFamily: 'var(--mono)', fontSize: 9.5, color: '#a89ec8', letterSpacing: '0.7px' },
-  sectionCount: {
-    fontFamily: 'var(--mono)', fontSize: 10, color: '#8b5cf6',
-    background: '#ede8ff', border: '1px solid #ddd6fe',
-    padding: '1px 8px', borderRadius: 20, fontWeight: 700,
+  badgeActive: {
+    background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+    color: '#fff',
+    boxShadow: '0 2px 8px rgba(139,92,246,0.4)',
   },
 
-  likedGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 },
-  likedCard: {
-    background: 'white', border: '1px solid #ede9fe',
-    borderRadius: 13, padding: '13px 10px 11px',
-    cursor: 'pointer', transition: 'all 0.18s',
-    textAlign: 'center', position: 'relative', overflow: 'hidden',
-  },
-  likedCardHov: {
-    borderColor: '#c4b5fd', transform: 'translateY(-2px)',
-    boxShadow: '0 4px 18px rgba(139,92,246,0.10)',
-  },
-  newBadge: {
-    position: 'absolute', top: 8, right: 8,
-    width: 7, height: 7, borderRadius: '50%',
-    background: '#8b5cf6', display: 'block',
-    boxShadow: '0 0 0 2px white',
-  },
-  likedAv: {
-    width: 46, height: 46, borderRadius: '50%',
-    margin: '0 auto 8px',
-    border: '2.5px solid rgba(255,255,255,0.9)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 17, fontWeight: 700, color: '#3b0764',
-    boxShadow: '0 2px 10px rgba(0,0,0,0.07)',
-  },
-  likedName: { fontSize: 12, fontWeight: 600, color: '#1e0a40', marginBottom: 2 },
-  likedStack: { fontFamily: 'var(--mono)', fontSize: 9, color: '#a89ec8', marginBottom: 7 },
-  likedCta: { fontSize: 10, fontWeight: 700, color: '#8b5cf6', fontFamily: 'var(--mono)' },
-
-  matchList: { display: 'flex', flexDirection: 'column', gap: 2 },
-  matchRow: {
-    display: 'flex', alignItems: 'center', gap: 11,
-    padding: '9px 9px', borderRadius: 13,
-    cursor: 'pointer', transition: 'all 0.18s',
-    border: '1px solid transparent',
-  },
-  matchRowHov: { background: '#faf8ff', borderColor: '#ede9fe' },
-  matchRowActive: { background: '#ede8ff', borderColor: '#ddd6fe' },
-  matchAvWrap: { position: 'relative', flexShrink: 0 },
-  matchAv: {
-    width: 42, height: 42, borderRadius: '50%',
-    border: '2px solid rgba(255,255,255,0.85)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 15, fontWeight: 700, color: '#3b0764',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
-  },
-  activeDot: {
-    position: 'absolute', bottom: 0, right: 0,
-    width: 10, height: 10, borderRadius: '50%',
-    background: '#22c55e', border: '2px solid white', display: 'block',
-  },
-  matchInfo: { flex: 1, minWidth: 0 },
-  matchName: { fontSize: 13, fontWeight: 600, color: '#1e0a40', marginBottom: 2 },
-  matchPreview: {
-    fontSize: 11, color: '#a89ec8',
-    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-  },
-  matchMeta: { textAlign: 'right', flexShrink: 0 },
-  matchTime: { fontSize: 10, color: '#d4c8f7', marginBottom: 4 },
-  unreadBadge: {
-    background: '#8b5cf6', color: 'white',
-    fontSize: 9, fontWeight: 700, minWidth: 16, height: 16,
-    borderRadius: 8, display: 'flex', alignItems: 'center',
-    justifyContent: 'center', padding: '0 4px', marginLeft: 'auto',
+  content: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '14px 12px',
   },
 
-  emptyWrap: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', padding: '48px 20px', textAlign: 'center', gap: 10,
+  sectionHint: {
+    fontSize: 10,
+    color: '#b0a8cc',
+    fontFamily: 'var(--mono)',
+    marginBottom: 12,
+    paddingBottom: 10,
+    borderBottom: '1px solid #f0ecff',
+    letterSpacing: '0.2px',
   },
-  emptyIcon: { fontSize: 34, marginBottom: 2 },
-  emptyText: { fontSize: 12, color: '#a89ec8', lineHeight: 1.7, maxWidth: 180 },
+
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: 9,
+  },
+
+  card: {
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 7,
+    padding: '16px 8px 12px',
+    background: 'linear-gradient(145deg, #ffffff, #faf8ff)',
+    border: '1.5px solid #f0ecff',
+    borderRadius: 18,
+    cursor: 'pointer',
+    transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+    textAlign: 'center',
+  },
+  cardActive: {
+    background: 'linear-gradient(145deg, #f5f0ff, #ede8ff)',
+    borderColor: '#c4b5fd',
+    boxShadow: '0 0 0 3px rgba(139,92,246,0.12), 0 4px 16px rgba(139,92,246,0.14)',
+    transform: 'scale(1.02)',
+  },
+  cardDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    background: 'linear-gradient(135deg, #a78bfa, #7c3aed)',
+    borderRadius: '50%',
+    border: '2px solid white',
+    boxShadow: '0 0 6px rgba(139,92,246,0.5)',
+  },
+
+  avatarOuter: {
+    padding: 2,
+    borderRadius: '50%',
+    background: 'linear-gradient(135deg, #e9e3ff, #ddd6fe)',
+    transition: 'all 0.2s',
+  },
+  avatarOuterActive: {
+    background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+    boxShadow: '0 4px 14px rgba(139,92,246,0.4)',
+  },
+  avatar: {
+    width: 50,
+    height: 50,
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+    flexShrink: 0,
+    border: '2.5px solid white',
+  },
+  avatarImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    position: 'absolute',
+    inset: 0,
+  },
+  avatarInitials: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: 'white',
+    letterSpacing: '-0.5px',
+    lineHeight: 1,
+    textShadow: '0 1px 4px rgba(0,0,0,0.15)',
+  },
+  onlineIndicator: {
+    position: 'absolute',
+    bottom: 1,
+    right: 1,
+    width: 10,
+    height: 10,
+    background: '#22c55e',
+    border: '2px solid white',
+    borderRadius: '50%',
+    boxShadow: '0 0 6px rgba(34,197,94,0.5)',
+  },
+
+  cardName: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: '#1e1b4b',
+    letterSpacing: '-0.2px',
+    lineHeight: 1.2,
+  },
+  cardStack: {
+    fontSize: 9,
+    color: '#8b5cf6',
+    fontFamily: 'var(--mono)',
+    background: 'linear-gradient(135deg, #f0ecff, #ede8ff)',
+    padding: '2px 8px',
+    borderRadius: 8,
+    letterSpacing: '0.2px',
+    maxWidth: '100%',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    border: '1px solid #ddd6fe',
+  },
+
+  empty: {
+    textAlign: 'center',
+    padding: '36px 12px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 6,
+  },
+  emptyEmoji: {
+    fontSize: 36,
+    marginBottom: 4,
+    filter: 'drop-shadow(0 4px 8px rgba(139,92,246,0.2))',
+  },
+  emptyTitle: {
+    fontSize: 13.5,
+    fontWeight: 700,
+    color: '#3b1a7a',
+    letterSpacing: '-0.2px',
+  },
+  emptyText: {
+    fontSize: 11,
+    color: '#b0a8cc',
+    lineHeight: 1.6,
+    fontFamily: 'var(--mono)',
+  },
+  emptyHint: {
+    fontSize: 10,
+    color: '#ddd6fe',
+    marginTop: 4,
+    letterSpacing: '4px',
+  },
+
+  footer: {
+    padding: '12px 16px',
+    borderTop: '1px solid #ede8ff',
+    textAlign: 'center',
+    background: 'linear-gradient(135deg, rgba(237,232,255,0.5), rgba(245,240,255,0.5))',
+    flexShrink: 0,
+  },
+  footerText: {
+    fontFamily: 'var(--mono)',
+    fontSize: 9,
+    color: '#c4b5fd',
+    letterSpacing: '2px',
+    textTransform: 'uppercase',
+  },
 }
